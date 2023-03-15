@@ -114,35 +114,28 @@ class _SplashScreenState extends State<SplashScreen> {
           context, MaterialPageRoute(builder: (context) => const Login(null)));
     } else {
       try {
-        stepStatusText = "Şuanda konumunuz aranıyor lütfen bekleyin";
-        LocationData locationData;
-        locationData = await location.getLocation().timeout(
-            const Duration(seconds: 5),
-            onTimeout: () => continueFromLocalDB());
-        Apis apis = Apis();
-        stepStatusText = "Konum alındı kapılarınız bulunuyor.";
-        apis
-            .sendOpenDoorRequest(locationData.latitude, locationData.longitude)
-            .then((value) {
-          if (pref.getString("token") == null ||
-              pref.getString("token")?.isEmpty == true) {
-            Navigator.push(context,
-                MaterialPageRoute(builder: (context) => const Login(null)));
-          }
-          pref.setString('sites', jsonEncode(value['sites']));
-          if (value['records'] != null) {
-            prepareScreen(value['records']);
-          } else if (pref.getString('sites') != null) {
-            String? s = pref.getString('sites');
-            prepareScreen(jsonDecode(s!));
-          } else {
-            setState(() {
-              isDataExist = false;
-            });
-          }
-        }).onError((error, stackTrace) {
-          getAllSiteFromLocal();
-        });
+        if (pref.getString('sites') != null) {
+          String? s = pref.getString('sites');
+          prepareScreen(jsonDecode(s!));
+          LocationData locationData;
+          locationData = await location.getLocation().timeout(
+              const Duration(seconds: 5),
+              onTimeout: () => continueFromLocalDB());
+          Apis apis = Apis();
+          stepStatusText = "Konum alındı kapılarınız bulunuyor.";
+          apis
+              .sendOpenDoorRequest(
+                  locationData.latitude, locationData.longitude)
+              .then((value) {
+            pref.setString('sites', jsonEncode(value['sites']));
+          }).onError((error, stackTrace) {
+            getAllSiteFromLocal();
+          });
+        } else {
+          setState(() {
+            isDataExist = false;
+          });
+        }
       } on TimeoutException catch (e) {
         getAllSiteFromLocal();
       } on Error catch (e) {
@@ -215,6 +208,22 @@ class _SplashScreenState extends State<SplashScreen> {
     }
   }
 
+  saveLocation() async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    LocationData locationData;
+    locationData = await location.getLocation().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => continueFromLocalDB());
+    Apis apis = Apis();
+    apis
+        .sendOpenDoorRequest(locationData.latitude, locationData.longitude)
+        .then((value) {
+      pref.setString('sites', jsonEncode(value['sites']));
+    }).onError((error, stackTrace) {
+      getAllSiteFromLocal();
+    });
+  }
+
   sendRequestToDevice(Device data) async {
     try {
       stepStatusText = "Cihaza bağlanılıyor.";
@@ -265,6 +274,7 @@ class _SplashScreenState extends State<SplashScreen> {
           isSendRequestToDevice = false;
         });
       });
+      saveLocation();
     } on TimeoutException catch (e) {
       print("err 1");
       setState(() {
