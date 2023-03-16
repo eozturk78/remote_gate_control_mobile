@@ -52,22 +52,43 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   checkWifiState() {
-    WiFiForIoTPlugin.isEnabled().then((val) {
-      if (val) {
-        navigateUser();
-        setState(() {
-          _sendNavigator = false;
-        });
-      }
-    });
+    if (Platform.isAndroid) {
+      WiFiForIoTPlugin.isEnabled().then((val) {
+        if (val) {
+          navigateUser();
+          setState(() {
+            _sendNavigator = false;
+          });
+        }
+      });
+    } else {
+      navigateUser();
+      setState(() {
+        _sendNavigator = false;
+      });
+    }
   }
 
   bool _isEWifinable = false;
   bool _sendNavigator = true;
   Widget getButtonWidgetsForAndroid() {
-    WiFiForIoTPlugin.isEnabled().then((val) {
+    if (Platform.isAndroid) {
+      WiFiForIoTPlugin.isEnabled().then((val) {
+        setState(() {
+          _isEWifinable = val;
+          if (_isEWifinable && _sendNavigator) {
+            Future.delayed(const Duration(seconds: 5), () {
+              checkWifiState();
+            });
+            _sendNavigator = false;
+          } else if (!_isEWifinable) {
+            _sendNavigator = true;
+          }
+        });
+      });
+    } else {
       setState(() {
-        _isEWifinable = val;
+        _isEWifinable = true;
         if (_isEWifinable && _sendNavigator) {
           Future.delayed(const Duration(seconds: 5), () {
             checkWifiState();
@@ -77,7 +98,7 @@ class _SplashScreenState extends State<SplashScreen> {
           _sendNavigator = true;
         }
       });
-    });
+    }
     return _isEWifinable
         ? const Text('')
         : Column(
@@ -117,20 +138,7 @@ class _SplashScreenState extends State<SplashScreen> {
         if (pref.getString('sites') != null) {
           String? s = pref.getString('sites');
           prepareScreen(jsonDecode(s!));
-          LocationData locationData;
-          locationData = await location.getLocation().timeout(
-              const Duration(seconds: 5),
-              onTimeout: () => continueFromLocalDB());
-          Apis apis = Apis();
-          stepStatusText = "Konum alındı kapılarınız bulunuyor.";
-          apis
-              .sendOpenDoorRequest(
-                  locationData.latitude, locationData.longitude)
-              .then((value) {
-            pref.setString('sites', jsonEncode(value['sites']));
-          }).onError((error, stackTrace) {
-            getAllSiteFromLocal();
-          });
+          saveLocation();
         } else {
           setState(() {
             isDataExist = false;
@@ -197,11 +205,12 @@ class _SplashScreenState extends State<SplashScreen> {
       sendRequestToDevice(data);
       sendAgainTime++;
       setState(() {
-        stepStatusText = "${sendAgainTime}. bağlanma denemesi";
+        stepStatusText = "$sendAgainTime. bağlanma denemesi";
       });
     } else {
       setState(() {
-        sendAgainTime = 0;
+        //sendAgainTime = 0;
+        isOpenGate = false;
         isSendRequest = true;
         isSendRequestToDevice = false;
       });
@@ -211,9 +220,8 @@ class _SplashScreenState extends State<SplashScreen> {
   saveLocation() async {
     SharedPreferences pref = await SharedPreferences.getInstance();
     LocationData locationData;
-    locationData = await location.getLocation().timeout(
-        const Duration(seconds: 5),
-        onTimeout: () => continueFromLocalDB());
+    locationData =
+        await location.getLocation().timeout(const Duration(seconds: 5));
     Apis apis = Apis();
     apis
         .sendOpenDoorRequest(locationData.latitude, locationData.longitude)
@@ -225,73 +233,68 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   sendRequestToDevice(Device data) async {
-    try {
-      stepStatusText = "Cihaza bağlanılıyor.";
-      WiFiForIoTPlugin.findAndConnect(data.SSId,
-              password: data.Password, joinOnce: false, withInternet: false)
-          .then((value) async {
-        if (value) {
-          stepStatusText = "Cihaza bağlandı.";
-          await WiFiForIoTPlugin.forceWifiUsage(true);
-          try {
-            stepStatusText = "Kapı sinyali gönderiliyor.";
-            await http.get(Uri.parse(data.Url));
-            setState(() {
-              isOpenGate = true;
-              isSendRequest = true;
-              isSendRequestToDevice = true;
-            });
-          } on Exception catch (ex) {
-            setState(() {
-              isOpenGate = true;
-              isSendRequest = true;
-              isSendRequestToDevice = true;
-            });
-          }
-          await WiFiForIoTPlugin.forceWifiUsage(false);
-          await WiFiForIoTPlugin.disconnect();
-          _timer = Timer(Duration(seconds: 1), () {
-            if (Platform.isAndroid) {
-              SystemNavigator.pop();
-            } else if (Platform.isIOS) {
-              exit(0);
-            }
-          });
-          stepStatusText = "Kapı sinyali gönderildi.";
-          setState(() {
-            isSendRequest = true;
-            isSendRequestToDevice = false;
-          });
-        } else {
-          sendAgain(data);
-        }
-      }).onError((error, stackTrace) {
-        print("err 1");
+    stepStatusText = "Cihaza bağlanılıyor.";
+    print(data.SSId);
+    WiFiForIoTPlugin.forceWifiUsage(false);
+
+    WiFiForIoTPlugin.connect(data.SSId,
+            password: data.Password,
+            joinOnce: false,
+            withInternet: false,
+            security: NetworkSecurity.WPA)
+        .then((value) async {
+      if (value) {
         setState(() {
-          sendAgain(data);
-          isOpenGate = false;
-          isSendRequest = false;
+          stepStatusText = "Cihaza bağlandı.";
+        });
+        print(value.toString() + " =====");
+        await WiFiForIoTPlugin.forceWifiUsage(true);
+        try {
+          setState(() {
+            stepStatusText = "Kapı sinyali gönderiliyor.";
+          });
+          print(data.Url);
+          await http.get(Uri.parse(data.Url));
+          setState(() {
+            isOpenGate = true;
+            isSendRequest = true;
+            isSendRequestToDevice = true;
+          });
+        } on Exception catch (ex) {
+          setState(() {
+            isOpenGate = true;
+            isSendRequest = true;
+            isSendRequestToDevice = true;
+          });
+        }
+        await WiFiForIoTPlugin.forceWifiUsage(false);
+        await WiFiForIoTPlugin.disconnect();
+        _timer = Timer(const Duration(seconds: 1), () {
+          if (Platform.isAndroid) {
+            SystemNavigator.pop();
+          } else if (Platform.isIOS) {
+            exit(0);
+          }
+        });
+        stepStatusText = "Kapı sinyali gönderildi.";
+        setState(() {
+          isSendRequest = true;
           isSendRequestToDevice = false;
         });
-      });
-      saveLocation();
-    } on TimeoutException catch (e) {
-      print("err 1");
-      setState(() {
+      } else {
+        print(value);
         sendAgain(data);
+      }
+    }).onError((error, stackTrace) {
+      print(error);
+      setState(() {
+        // sendAgain(data);
         isOpenGate = false;
         isSendRequest = false;
-        isSendRequestToDevice = false;
+        isSendRequestToDevice = true;
       });
-    } on Error catch (e) {
-      print("err 1");
-      setState(() {
-        sendAgain(data);
-        isDataExist = false;
-        isSendRequest = true;
-        isSendRequestToDevice = false;
-      });
-    }
+    });
+    saveLocation();
   }
 
   @override
@@ -446,8 +449,10 @@ class _SplashScreenState extends State<SplashScreen> {
                           ),
                       onPressed: () {
                         _timer?.cancel();
-                        isSendRequest = false;
-                        isSendRequestToDevice = true;
+                        setState(() {
+                          isSendRequest = false;
+                          isSendRequestToDevice = true;
+                        });
                         sendRequestToDevice(_data.Devices[0]);
                       },
                       child: const Text("Tekrar istek gönder"),
