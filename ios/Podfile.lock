@@ -1,7 +1,5 @@
 PODS:
   - Flutter (1.0.0)
-  - flutter_iot_wifi (0.0.1):
-    - Flutter
   - fluttertoast (0.0.2):
     - Flutter
     - Toast
@@ -14,20 +12,19 @@ PODS:
   - Toast (4.0.0)
   - url_launcher_ios (0.0.1):
     - Flutter
-  - wifi_connector (0.0.1):
+  - webview_flutter_wkwebview (0.0.1):
     - Flutter
   - wifi_iot (0.0.1):
     - Flutter
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
-  - flutter_iot_wifi (from `.symlinks/plugins/flutter_iot_wifi/ios`)
   - fluttertoast (from `.symlinks/plugins/fluttertoast/ios`)
   - location (from `.symlinks/plugins/location/ios`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
   - shared_preferences_ios (from `.symlinks/plugins/shared_preferences_ios/ios`)
   - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
-  - wifi_connector (from `.symlinks/plugins/wifi_connector/ios`)
+  - webview_flutter_wkwebview (from `.symlinks/plugins/webview_flutter_wkwebview/ios`)
   - wifi_iot (from `.symlinks/plugins/wifi_iot/ios`)
 
 SPEC REPOS:
@@ -37,8 +34,6 @@ SPEC REPOS:
 EXTERNAL SOURCES:
   Flutter:
     :path: Flutter
-  flutter_iot_wifi:
-    :path: ".symlinks/plugins/flutter_iot_wifi/ios"
   fluttertoast:
     :path: ".symlinks/plugins/fluttertoast/ios"
   location:
@@ -49,21 +44,20 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/shared_preferences_ios/ios"
   url_launcher_ios:
     :path: ".symlinks/plugins/url_launcher_ios/ios"
-  wifi_connector:
-    :path: ".symlinks/plugins/wifi_connector/ios"
+  webview_flutter_wkwebview:
+    :path: ".symlinks/plugins/webview_flutter_wkwebview/ios"
   wifi_iot:
     :path: ".symlinks/plugins/wifi_iot/ios"
 
 SPEC CHECKSUMS:
   Flutter: f04841e97a9d0b0a8025694d0796dd46242b2854
-  flutter_iot_wifi: 1e798012ff737e8af6d109740136068c5916e512
   fluttertoast: eb263d302cc92e04176c053d2385237e9f43fad0
   location: 3a2eed4dd2fab25e7b7baf2a9efefe82b512d740
   permission_handler_apple: 44366e37eaf29454a1e7b1b7d736c2cceaeb17ce
   shared_preferences_ios: 548a61f8053b9b8a49ac19c1ffbc8b92c50d68ad
   Toast: 91b396c56ee72a5790816f40d3a94dd357abc196
   url_launcher_ios: 839c58cdb4279282219f5e248c3321761ff3c4de
-  wifi_connector: aa1fed85d30fbe52eb39d1aefe761a36032a581f
+  webview_flutter_wkwebview: 2e2d318f21a5e036e2c3f26171342e95908bd60a
   wifi_iot: b5aafd6f9b52f8a357383a1deabab45f31cd602d
 
 PODFILE CHECKSUM: 7368163408c647b7eb699d0d788ba6718e18fb8d
