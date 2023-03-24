@@ -236,8 +236,6 @@ class _SplashScreenState extends State<SplashScreen> {
     stepStatusText = "Cihaza bağlanılıyor.";
     print(data.SSId);
     // WiFiForIoTPlugin.forceWifiUsage(false);
-    _usersBSSId = WiFiForIoTPlugin.getBSSID();
-    _usersSSId = WiFiForIoTPlugin.getSSID();
     WiFiForIoTPlugin.connect(data.SSId,
             password: data.Password,
             joinOnce: true,
@@ -271,13 +269,11 @@ class _SplashScreenState extends State<SplashScreen> {
         }
         await WiFiForIoTPlugin.forceWifiUsage(false);
         await WiFiForIoTPlugin.disconnect();
-        // WiFiForIoTPlugin.removeWifiNetwork(data.SSId);
-        //await WiFiForIoTPlugin.connect(_usersSSId, bssid: _usersBSSId);
-        _timer = Timer(const Duration(seconds: 1), () {
+        _timer = Timer(const Duration(seconds: 4), () {
           if (Platform.isAndroid) {
             SystemNavigator.pop();
           } else if (Platform.isIOS) {
-            //exit(0);
+            exit(0);
           }
         });
         stepStatusText = "Kapı sinyali gönderildi.";
