@@ -43,6 +43,7 @@ class _SplashScreenState extends State<SplashScreen> {
   bool? isDataExist;
   Timer? _timer;
   String stepStatusText = "";
+  var _data = null;
   @override
   void initState() {
     super.initState();
@@ -50,14 +51,21 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   checkWifiState() {
-    WiFiForIoTPlugin.isEnabled().then((val) {
-      if (val) {
-        navigateUser();
-        setState(() {
-          _sendNavigator = false;
-        });
-      }
-    });
+    if (Platform.isAndroid) {
+      WiFiForIoTPlugin.isEnabled().then((val) {
+        if (val) {
+          navigateUser();
+          setState(() {
+            _sendNavigator = false;
+          });
+        }
+      });
+    } else {
+      navigateUser();
+      setState(() {
+        _sendNavigator = false;
+      });
+    }
   }
 
   bool _isEWifinable = false;
@@ -80,6 +88,7 @@ class _SplashScreenState extends State<SplashScreen> {
     } else {
       setState(() {
         _isEWifinable = true;
+        print("=======");
         if (_isEWifinable && _sendNavigator) {
           Future.delayed(const Duration(seconds: 5), () {
             checkWifiState();
@@ -92,8 +101,8 @@ class _SplashScreenState extends State<SplashScreen> {
     }
     return _isEWifinable
         ? const Text('')
-        : Column(
-            children: const [
+        : const Column(
+            children: [
               Text(
                 'Lütfen wifi bağlantınızı açın',
                 style: TextStyle(color: Colors.red, fontSize: 20),
@@ -153,15 +162,6 @@ class _SplashScreenState extends State<SplashScreen> {
         isSendRequestToDevice = false;
       });
     }
-  }
-
-  closeConnection() {
-    print("time out");
-    setState(() {
-      isSendRequest = false;
-      isSendRequestToDevice = false;
-      isOpenGate = false;
-    });
   }
 
   int sendAgainTime = 0;
@@ -250,7 +250,7 @@ class _SplashScreenState extends State<SplashScreen> {
       stepStatusText = "Kapı açıldı.";
       setState(() {
         isSendRequest = true;
-        isSendRequestToDevice = false;
+        isSendRequestToDevice = true;
       });
     } else {
       sendAgain(data);
@@ -286,174 +286,229 @@ class _SplashScreenState extends State<SplashScreen> {
         centerTitle: true,
         automaticallyImplyLeading: false,
       ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Center(
-            child: SingleChildScrollView(
-              child: SafeArea(
-                child: getButtonWidgetsForAndroid(),
+      body: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Center(
+              child: SingleChildScrollView(
+                child: SafeArea(
+                  child: getButtonWidgetsForAndroid(),
+                ),
               ),
             ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(5),
-            child: Image.asset("assets/images/logo-big.PNG"),
-          ),
-          if (isSendRequestToDevice)
-            Column(
-              children: [
-                const SpinKitCircle(
-                  color: kPrimaryColor,
-                  size: 50.0,
-                ),
-                // ignore: unnecessary_string_interpolations
-                Text("$stepStatusText")
-              ],
-            ),
-          if (!isSendRequestToDevice &&
-              _isEWifinable &&
-              isDataExist == true &&
-              !isSendRequest)
             Padding(
-              padding: const EdgeInsets.all(5),
-              child: Column(
+              padding: EdgeInsets.all(5),
+              child: Image.asset("assets/images/logo-big.PNG"),
+            ),
+            if (isSendRequestToDevice)
+              Column(
                 children: [
-                  ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: dataList.length,
-                      itemBuilder: (BuildContext context, int index) {
-                        return Column(
-                          children: [
-                            ListView.builder(
-                              shrinkWrap: true,
-                              itemCount: dataList[index].Devices.length,
-                              itemBuilder: (BuildContext context, int j) {
-                                return Container(
-                                  margin: new EdgeInsets.only(bottom: 5),
-                                  child: ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      minimumSize: const Size.fromHeight(60),
-                                      backgroundColor: kPrimaryColor,
+                  const SpinKitCircle(
+                    color: kPrimaryColor,
+                    size: 50.0,
+                  ),
+                  // ignore: unnecessary_string_interpolations
+                  Text("$stepStatusText")
+                ],
+              ),
+            if (!isSendRequestToDevice &&
+                _isEWifinable &&
+                isDataExist == true &&
+                !isSendRequest)
+              Padding(
+                padding: const EdgeInsets.all(5),
+                child: Column(
+                  children: [
+                    ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: dataList.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          return Column(
+                            children: [
+                              ListView.builder(
+                                shrinkWrap: true,
+                                itemCount: dataList[index].Devices.length,
+                                itemBuilder: (BuildContext context, int j) {
+                                  return Container(
+                                    margin: new EdgeInsets.only(bottom: 5),
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        minimumSize: const Size.fromHeight(60),
+                                        backgroundColor: kPrimaryColor,
+                                      ),
+                                      onPressed: () {
+                                        _timer?.cancel();
+                                        _data = dataList[index];
+                                        setState(() {
+                                          isSendRequestToDevice = true;
+                                        });
+                                        sendRequestToDevice(
+                                            dataList[index].Devices[j]);
+                                      },
+                                      child: Text(
+                                        dataList[index].Devices[j].Name,
+                                      ),
                                     ),
-                                    onPressed: () {
-                                      _timer?.cancel();
-                                      _data = dataList[index];
-                                      setState(() {
-                                        isSendRequestToDevice = true;
-                                      });
-                                      sendRequestToDevice(
-                                          dataList[index].Devices[j]);
-                                    },
-                                    child: Text(
-                                      dataList[index].Devices[j].Name,
-                                    ),
-                                  ),
-                                );
-                              },
+                                  );
+                                },
+                              ),
+                            ],
+                          );
+                        }),
+                    if (dataList.length > 1)
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(40),
+                          backgroundColor: Colors.grey,
+                        ),
+                        onPressed: () {
+                          _timer?.cancel();
+                          isSendRequest = false;
+                          Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: ((context) =>
+                                          const ProfileScreen(null))))
+                              .then((value) {
+                            navigateUser();
+                          });
+                        },
+                        child: const Text("Ayarlara git"),
+                      ),
+                  ],
+                ),
+              )
+            else if (!isSendRequestToDevice && _isEWifinable && isSendRequest)
+              Padding(
+                padding: const EdgeInsets.all(15),
+                child: Center(
+                  child: Column(
+                    children: [
+                      if (isOpenGate == true)
+                        Column(
+                          children: const [
+                            Icon(
+                              Icons.check_circle,
+                              size: 100.0,
+                              color: Colors.green,
+                            ),
+                            Text(
+                              "Kapı açma sinyali gönderildi.",
+                              style: TextStyle(
+                                  color: Colors.green,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold),
                             ),
                           ],
-                        );
-                      }),
-                  if (dataList.length > 1)
+                        )
+                      else
+                        Column(
+                          children: const [
+                            Icon(
+                              Icons.remove_circle_outline_sharp,
+                              size: 100.0,
+                              color: Colors.red,
+                            ),
+                            Text(
+                              "Cihaz durumu kontrol edilmeli.",
+                              style: TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      const SizedBox(
+                        height: 50,
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(40),
+                            backgroundColor:
+                                kPrimaryColor // fromHeight use double.infinity as width and 40 is the height
+                            ),
+                        onPressed: () {
+                          _timer?.cancel();
+                          isSendRequest = false;
+                          isSendRequestToDevice = true;
+                          sendRequestToDevice(_data.Devices[0]);
+                        },
+                        child: const Text("Tekrar istek gönder"),
+                      ),
+                      const SizedBox(
+                        height: 60,
+                      ),
+                      if (dataList.isNotEmpty)
+                        ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(40),
+                              backgroundColor: kPrimaryColor,
+                            ),
+                            onPressed: () {
+                              _timer?.cancel();
+                              isSendRequest = false;
+                            },
+                            child: const Text("Listeye dön")),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(40),
+                          backgroundColor: Colors.grey,
+                        ),
+                        onPressed: () {
+                          _timer?.cancel();
+                          isSendRequest = false;
+                          Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: ((context) =>
+                                          const ProfileScreen(null))))
+                              .then((value) {
+                            navigateUser();
+                          });
+                        },
+                        child: const Text("Ayarlara git"),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else if (!isSendRequestToDevice &&
+                _isEWifinable &&
+                isDataExist == false)
+              Center(
+                  child: Padding(
+                padding: const EdgeInsets.all(15),
+                child: Column(
+                  children: [
+                    const Icon(
+                      Icons.remove_circle_outline_sharp,
+                      size: 100.0,
+                      color: kPrimaryColor,
+                    ),
+                    const Text("Bulunduğunuz yerde kapı bulunamadı"),
+                    const SizedBox(
+                      height: 40,
+                    ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size.fromHeight(40),
-                        backgroundColor: Colors.grey,
+                        backgroundColor: Colors.green,
                       ),
                       onPressed: () {
                         _timer?.cancel();
-                        isSendRequest = false;
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: ((context) =>
-                                    const ProfileScreen(null)))).then((value) {
-                          navigateUser();
-                        });
+                        navigateUser();
                       },
-                      child: const Text("Ayarlara git"),
-                    ),
-                ],
-              ),
-            )
-          else if (!isSendRequestToDevice && _isEWifinable && isSendRequest)
-            Padding(
-              padding: const EdgeInsets.all(15),
-              child: Center(
-                child: Column(
-                  children: [
-                    if (isOpenGate == true)
-                      Column(
-                        children: const [
-                          Icon(
-                            Icons.check_circle,
-                            size: 100.0,
-                            color: Colors.green,
-                          ),
-                          Text(
-                            "Kapı açma sinyali gönderildi.",
-                            style: TextStyle(
-                                color: Colors.green,
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      )
-                    else
-                      Column(
-                        children: const [
-                          Icon(
-                            Icons.remove_circle_outline_sharp,
-                            size: 100.0,
-                            color: Colors.red,
-                          ),
-                          Text(
-                            "Cihaz durumu kontrol edilmeli.",
-                            style: TextStyle(
-                                color: Colors.red,
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    const SizedBox(
-                      height: 50,
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(40),
-                          backgroundColor:
-                              kPrimaryColor // fromHeight use double.infinity as width and 40 is the height
-                          ),
-                      onPressed: () {
-                        _timer?.cancel();
-                        isSendRequest = false;
-                        isSendRequestToDevice = true;
-                        sendRequestToDevice(_data.Devices[0]);
-                      },
-                      child: const Text("Tekrar istek gönder"),
+                      child: const Text("Tekrar dene"),
                     ),
                     const SizedBox(
                       height: 60,
                     ),
-                    if (dataList.isNotEmpty)
-                      ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(40),
-                            backgroundColor: kPrimaryColor,
-                          ),
-                          onPressed: () {
-                            _timer?.cancel();
-                            isSendRequest = false;
-                          },
-                          child: const Text("Listeye dön")),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(40),
-                        backgroundColor: Colors.grey,
-                      ),
+                          minimumSize: const Size.fromHeight(40),
+                          backgroundColor: Colors.grey),
                       onPressed: () {
                         _timer?.cancel();
                         isSendRequest = false;
@@ -461,78 +516,27 @@ class _SplashScreenState extends State<SplashScreen> {
                             context,
                             MaterialPageRoute(
                                 builder: ((context) =>
-                                    const ProfileScreen(null)))).then((value) {
-                          navigateUser();
-                        });
+                                    const ProfileScreen(null))));
                       },
                       child: const Text("Ayarlara git"),
                     ),
                   ],
                 ),
+              )),
+            if (!isSendRequestToDevice)
+              TextButton(
+                style: TextButton.styleFrom(
+                  textStyle: const TextStyle(fontSize: 12),
+                ),
+                onPressed: () async {
+                  const url = 'https://aesmartsystems.com'; //Twitter's URL
+                  await launch(url);
+                },
+                child: const Text(
+                    'Hizmetlerimiz hakkında bilgi almak için tıklayın'),
               ),
-            )
-          else if (!isSendRequestToDevice &&
-              _isEWifinable &&
-              isDataExist == false)
-            Center(
-                child: Padding(
-              padding: const EdgeInsets.all(15),
-              child: Column(
-                children: [
-                  const Icon(
-                    Icons.remove_circle_outline_sharp,
-                    size: 100.0,
-                    color: kPrimaryColor,
-                  ),
-                  const Text("Bulunduğunuz yerde kapı bulunamadı"),
-                  const SizedBox(
-                    height: 40,
-                  ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(40),
-                      backgroundColor: Colors.green,
-                    ),
-                    onPressed: () {
-                      _timer?.cancel();
-                      navigateUser();
-                    },
-                    child: const Text("Tekrar dene"),
-                  ),
-                  const SizedBox(
-                    height: 60,
-                  ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(40),
-                        backgroundColor: Colors.grey),
-                    onPressed: () {
-                      _timer?.cancel();
-                      isSendRequest = false;
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: ((context) =>
-                                  const ProfileScreen(null))));
-                    },
-                    child: const Text("Ayarlara git"),
-                  ),
-                ],
-              ),
-            )),
-          if (!isSendRequestToDevice)
-            TextButton(
-              style: TextButton.styleFrom(
-                textStyle: const TextStyle(fontSize: 12),
-              ),
-              onPressed: () async {
-                const url = 'https://aesmartsystems.com'; //Twitter's URL
-                await launch(url);
-              },
-              child: const Text(
-                  'Hizmetlerimiz hakkında bilgi almak için tıklayın'),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

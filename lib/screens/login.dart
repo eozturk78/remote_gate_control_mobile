@@ -6,7 +6,7 @@ import 'package:location/location.dart';
 import 'package:remote_gate_control_mobile/apis/apis.dart';
 import 'package:remote_gate_control_mobile/screens/forgot_password.dart';
 import 'package:remote_gate_control_mobile/screens/main.dart';
-import 'package:remote_gate_control_mobile/screens/splash_screen%20-%20ios.dart';
+import 'package:remote_gate_control_mobile/screens/splash_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants.dart';
@@ -38,89 +38,91 @@ class _LoginState extends State<Login> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: Text("Oturum Aç"),
-          centerTitle: true,
-          backgroundColor: kPrimaryColor,
-          automaticallyImplyLeading: false,
-        ),
-        body: Padding(
-          padding: EdgeInsets.all(15),
-          child: Column(
-            children: [
-              Image.asset("assets/images/logo-big.PNG"),
-              TextFormField(
-                controller: email,
-                obscureText: false,
-                decoration: const InputDecoration(
-                  hintText: 'E-Posta',
-                ),
+      appBar: AppBar(
+        title: Text("Oturum Aç"),
+        centerTitle: true,
+        backgroundColor: kPrimaryColor,
+        automaticallyImplyLeading: false,
+      ),
+      body: SingleChildScrollView(
+          child: Padding(
+        padding: EdgeInsets.all(15),
+        child: Column(
+          children: [
+            Image.asset("assets/images/logo-big.PNG"),
+            TextFormField(
+              controller: email,
+              obscureText: false,
+              decoration: const InputDecoration(
+                hintText: 'E-Posta',
               ),
-              const SizedBox(
-                height: 15,
+            ),
+            const SizedBox(
+              height: 15,
+            ),
+            TextFormField(
+              controller: password,
+              obscureText: true,
+              decoration: const InputDecoration(hintText: 'Şifre'),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(
+                textStyle: const TextStyle(fontSize: 12),
               ),
-              TextFormField(
-                controller: password,
-                obscureText: true,
-                decoration: const InputDecoration(hintText: 'Şifre'),
+              onPressed: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ForgotPasswordPage(null),
+                    ));
+              },
+              child: const Text('Şifremi unuttum'),
+            ),
+            const SizedBox(
+              height: 40,
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size.fromHeight(40),
+                backgroundColor: kPrimaryColor,
               ),
-              TextButton(
-                style: TextButton.styleFrom(
-                  textStyle: const TextStyle(fontSize: 12),
-                ),
-                onPressed: () {
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ForgotPasswordPage(null),
-                      ));
-                },
-                child: const Text('Şifremi unuttum'),
-              ),
-              const SizedBox(
-                height: 40,
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(40),
-                  backgroundColor: kPrimaryColor,
-                ),
-                onPressed: () => this.onLogin(),
-                child: Ink(
-                  decoration:
-                      BoxDecoration(borderRadius: BorderRadius.circular(20)),
-                  child: Container(
-                    width: 200,
-                    alignment: Alignment.center,
-                    child: const Text(
-                      'Giriş Yap',
-                      style: TextStyle(
-                        color: Colors.white,
-                      ),
+              onPressed: () => this.onLogin(),
+              child: Ink(
+                decoration:
+                    BoxDecoration(borderRadius: BorderRadius.circular(20)),
+                child: Container(
+                  width: 200,
+                  alignment: Alignment.center,
+                  child: const Text(
+                    'Giriş Yap',
+                    style: TextStyle(
+                      color: Colors.white,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(
-                height: 40,
-              ),
-              const Text('Uygulamamızın verimli çalışabilmesi için;'),
-              const Padding(
-                padding: EdgeInsets.all(15),
-                child: Text("1. Wifi bağlantınızın"),
-              ),
-              const Padding(
-                padding: EdgeInsets.all(15),
-                child: Text("2. GPS konum hizmetleri"),
-              ),
-              const Padding(
-                padding: EdgeInsets.all(15),
-                child: Center(
-                    child: Text(
-                        "3. İnternet erişimizin bulunması gerekmektedir.")),
-              )
-            ],
-          ),
-        ));
+            ),
+            const SizedBox(
+              height: 40,
+            ),
+            const Text('Uygulamamızın verimli çalışabilmesi için;'),
+            const Padding(
+              padding: EdgeInsets.all(15),
+              child: Text("1. Wifi bağlantınızın"),
+            ),
+            const Padding(
+              padding: EdgeInsets.all(15),
+              child: Text("2. GPS konum hizmetleri"),
+            ),
+            const Padding(
+              padding: EdgeInsets.all(15),
+              child: Center(
+                  child:
+                      Text("3. İnternet erişimizin bulunması gerekmektedir.")),
+            )
+          ],
+        ),
+      )),
+    );
   }
 }

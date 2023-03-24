@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:remote_gate_control_mobile/screens/splash_screen%20-%20ios.dart';
+
+import 'screens/splash_screen.dart';
 
 void main() {
   runApp(const MyApp(null));
@@ -16,6 +17,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
+      debugShowCheckedModeBanner: false,
       home: SafeArea(child: SplashScreen()),
     );
   }
