@@ -1,10 +1,9 @@
-// ignore_for_file: unnecessary_new, deprecated_member_use, avoid_print
+// ignore_for_file: unnecessary_new, deprecated_member_use
 
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -43,6 +42,9 @@ class _SplashScreenState extends State<SplashScreen> {
   bool? isDataExist;
   Timer? _timer;
   String stepStatusText = "";
+  var _data = null;
+  var _usersSSId = null;
+  var _usersBSSId = null;
   @override
   void initState() {
     super.initState();
@@ -50,14 +52,21 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   checkWifiState() {
-    WiFiForIoTPlugin.isEnabled().then((val) {
-      if (val) {
-        navigateUser();
-        setState(() {
-          _sendNavigator = false;
-        });
-      }
-    });
+    if (Platform.isAndroid) {
+      WiFiForIoTPlugin.isEnabled().then((val) {
+        if (val) {
+          navigateUser();
+          setState(() {
+            _sendNavigator = false;
+          });
+        }
+      });
+    } else {
+      navigateUser();
+      setState(() {
+        _sendNavigator = false;
+      });
+    }
   }
 
   bool _isEWifinable = false;
@@ -102,6 +111,20 @@ class _SplashScreenState extends State<SplashScreen> {
           );
   }
 
+  continueFromLocalDB() async {
+    stepStatusText = "Konum alınamadı bütün cihazlarda aranacak";
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    if (pref.getString('sites') != null) {
+      String? s = pref.getString('sites');
+      prepareScreen(jsonDecode(s!));
+    } else {
+      setState(() {
+        isDataExist = false;
+        isSendRequestToDevice = false;
+      });
+    }
+  }
+
   navigateUser() async {
     isSendRequestToDevice = true;
     SharedPreferences pref = await SharedPreferences.getInstance();
@@ -111,17 +134,30 @@ class _SplashScreenState extends State<SplashScreen> {
       Navigator.push(
           context, MaterialPageRoute(builder: (context) => const Login(null)));
     } else {
-      if (pref.getString('sites') != null) {
-        String? s = pref.getString('sites');
-        // ignore: avoid_print
-        print(s);
-        prepareScreen(jsonDecode(s!));
-      } else {
-        setState(() {
-          isDataExist = false;
-        });
+      try {
+        if (pref.getString('sites') != null) {
+          String? s = pref.getString('sites');
+          prepareScreen(jsonDecode(s!));
+          saveLocation();
+        } else {
+          setState(() {
+            isDataExist = false;
+          });
+        }
+      } on TimeoutException catch (e) {
+        getAllSiteFromLocal();
+      } on Error catch (e) {
+        getAllSiteFromLocal();
       }
     }
+  }
+
+  getAllSiteFromLocal() async {
+    setState(() {
+      stepStatusText = "Lokasyon alınamadı";
+      isDataExist = false;
+      isSendRequestToDevice = false;
+    });
   }
 
   prepareScreen(data) {
@@ -135,8 +171,6 @@ class _SplashScreenState extends State<SplashScreen> {
         });
       } else if (records.length > 1 || records[0].Devices.length > 1) {
         dataList = records.toList();
-        dataList.forEach(((element) => print(element.BuildingName)));
-
         setState(() {
           isDataExist = true;
           isSendRequestToDevice = false;
@@ -166,115 +200,101 @@ class _SplashScreenState extends State<SplashScreen> {
 
   int sendAgainTime = 0;
   sendAgain(Device data) {
-    if (sendAgainTime < 10) {
+    if (sendAgainTime < 3) {
       isSendRequestToDevice = true;
       sendRequestToDevice(data);
       sendAgainTime++;
       setState(() {
-        stepStatusText = "Bağlanıyor lütfen bekleyin";
+        stepStatusText = "$sendAgainTime. bağlanma denemesi";
       });
     } else {
       setState(() {
-        sendAgainTime = 0;
+        //sendAgainTime = 0;
+        isOpenGate = true;
         isSendRequest = true;
         isSendRequestToDevice = false;
       });
     }
-  }
-
-  completeSave() async {
-    await WiFiForIoTPlugin.forceWifiUsage(false);
-    bool isDissConnected = false;
-    do {
-      isDissConnected = await WiFiForIoTPlugin.disconnect();
-      // ignore: prefer_interpolation_to_compose_strings
-    } while (!isDissConnected);
-    saveLocation();
   }
 
   saveLocation() async {
-    bool isSentRequest = false;
-    do {
-      try {
-        final result = await InternetAddress.lookup('aesmartsystems.com');
-        if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
-          isSentRequest = true;
-          LocationData locationData;
-          locationData = await location.getLocation();
-          Apis apis = Apis();
-          SharedPreferences pref = await SharedPreferences.getInstance();
-          apis
-              .sendOpenDoorRequest(
-                  locationData.latitude, locationData.longitude)
-              .then((value) async {
-            print(value);
-            if (value['sites'] != null) {
-              pref.setString('sites', jsonEncode(value['sites']));
-            }
-          });
-        }
-      } on SocketException catch (_) {
-        print('not connected');
-      }
-    } while (!isSentRequest);
-    _timer = Timer(const Duration(seconds: 1), () {
-      if (Platform.isAndroid) {
-        SystemNavigator.pop();
-      } else if (Platform.isIOS) {
-        exit(0);
-      }
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    LocationData locationData;
+    locationData =
+        await location.getLocation().timeout(const Duration(seconds: 5));
+    Apis apis = Apis();
+    apis
+        .sendOpenDoorRequest(locationData.latitude, locationData.longitude)
+        .then((value) {
+      pref.setString('sites', jsonEncode(value['sites']));
+    }).onError((error, stackTrace) {
+      getAllSiteFromLocal();
     });
   }
 
-  proceedSignalDevice(Device data, bool value) async {
-    if (value) {
-      stepStatusText = "Kapıya bağlandı.";
-      await WiFiForIoTPlugin.forceWifiUsage(true);
-      try {
-        stepStatusText = "Kapı açılıyor.";
-        await http.get(Uri.parse(data.Url));
-        completeSave();
-        setState(() {
-          isOpenGate = true;
-          isSendRequest = true;
-          isSendRequestToDevice = true;
-        });
-      } on Exception catch (ex) {
-        completeSave();
-        setState(() {
-          isOpenGate = true;
-          isSendRequest = true;
-          isSendRequestToDevice = true;
-        });
-      }
-      stepStatusText = "Kapı açıldı.";
-      setState(() {
-        isSendRequest = true;
-        isSendRequestToDevice = false;
-      });
-    } else {
-      sendAgain(data);
-    }
-  }
-
   sendRequestToDevice(Device data) async {
-    stepStatusText = "Kapıya bağlanılıyor.";
-    if (Platform.isAndroid) {
-      WiFiForIoTPlugin.findAndConnect(data.SSId,
-              password: data.Password, joinOnce: false, withInternet: false)
-          .then((value) async {
-        proceedSignalDevice(data, value);
+    stepStatusText = "Cihaza bağlanılıyor.";
+    print(data.SSId);
+    // WiFiForIoTPlugin.forceWifiUsage(false);
+    WiFiForIoTPlugin.connect(data.SSId,
+            password: data.Password,
+            joinOnce: true,
+            withInternet: false,
+            security: NetworkSecurity.WPA)
+        .then((value) async {
+      if (value) {
+        setState(() {
+          stepStatusText = "Cihaza bağlandı.";
+        });
+        print(value.toString() + " =====");
+        await WiFiForIoTPlugin.forceWifiUsage(true);
+        try {
+          setState(() {
+            stepStatusText = "Kapı sinyali gönderiliyor.";
+          });
+          print(data.Url);
+          //await http.get(Uri.parse(data.Url));
+          await launch(data.Url).whenComplete(() async => await closeWebView());
+          setState(() {
+            isOpenGate = true;
+            isSendRequest = true;
+            isSendRequestToDevice = true;
+          });
+        } on Exception catch (ex) {
+          setState(() {
+            isOpenGate = true;
+            isSendRequest = true;
+            isSendRequestToDevice = true;
+          });
+        }
+        await WiFiForIoTPlugin.forceWifiUsage(false);
+        await WiFiForIoTPlugin.disconnect();
+        _timer = Timer(const Duration(seconds: 4), () {
+          if (Platform.isAndroid) {
+            SystemNavigator.pop();
+          } else if (Platform.isIOS) {
+            exit(0);
+          }
+        });
+        stepStatusText = "Kapı sinyali gönderildi.";
+        setState(() {
+          isSendRequest = true;
+          isSendRequestToDevice = false;
+        });
+      } else {
+        print(value);
+        sendAgain(data);
+      }
+    }).onError((error, stackTrace) {
+      print(error);
+      setState(() {
+        // sendAgain(data);
+        isOpenGate = false;
+        isSendRequest = false;
+        isSendRequestToDevice = true;
       });
-    } else {
-      WiFiForIoTPlugin.connect(data.SSId,
-              password: data.Password,
-              joinOnce: false,
-              withInternet: false,
-              security: NetworkSecurity.WPA)
-          .then((value) async {
-        proceedSignalDevice(data, value);
-      });
-    }
+    });
+    saveLocation();
   }
 
   @override
@@ -429,8 +449,10 @@ class _SplashScreenState extends State<SplashScreen> {
                           ),
                       onPressed: () {
                         _timer?.cancel();
-                        isSendRequest = false;
-                        isSendRequestToDevice = true;
+                        setState(() {
+                          isSendRequest = false;
+                          isSendRequestToDevice = true;
+                        });
                         sendRequestToDevice(_data.Devices[0]);
                       },
                       child: const Text("Tekrar istek gönder"),

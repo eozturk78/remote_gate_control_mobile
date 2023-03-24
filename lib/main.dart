@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:remote_gate_control_mobile/screens/splash_screen.dart';
+import 'package:remote_gate_control_mobile/screens/splash_screen%20-%20ios.dart';
 
 void main() {
   runApp(const MyApp(null));
