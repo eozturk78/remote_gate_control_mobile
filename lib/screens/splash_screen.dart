@@ -19,7 +19,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wifi_iot/wifi_iot.dart';
 import 'package:http/http.dart' as http;
-import 'package:remote_gate_control_mobile/toast.dart';
+import 'package:flutter_wifi_connect/flutter_wifi_connect.dart';
 
 import '../models/device.dart';
 import '../models/site.dart';
@@ -100,7 +100,7 @@ class _SplashScreenState extends State<SplashScreen> {
     }
     return _isEWifinable
         ? const Text('')
-        : const Column(
+        : Column(
             children: [
               Text(
                 'Lütfen wifi bağlantınızı açın',
@@ -170,7 +170,7 @@ class _SplashScreenState extends State<SplashScreen> {
       sendRequestToDevice(data);
       sendAgainTime++;
       setState(() {
-        stepStatusText = "Bağlanıyor lütfen bekleyin";
+        stepStatusText = "$sendAgainTime. bağlanma denemesi";
       });
     } else {
       setState(() {
@@ -252,7 +252,6 @@ class _SplashScreenState extends State<SplashScreen> {
           });
         } else {
           await launch(data.Url).whenComplete(() async => await closeWebView());
-
           completeSave();
           setState(() {
             isOpenGate = true;
@@ -278,18 +277,29 @@ class _SplashScreenState extends State<SplashScreen> {
   sendRequestToDevice(Device data) async {
     stepStatusText = "Kapıya bağlanılıyor.";
     if (Platform.isAndroid) {
-      WiFiForIoTPlugin.findAndConnect(data.SSId,
-              password: data.Password, joinOnce: false, withInternet: false)
-          .then((value) async {
-        proceedSignalDevice(data, value);
-      });
+      try {
+        if (sendAgainTime % 2 == 0) {
+          WiFiForIoTPlugin.findAndConnect(data.SSId,
+                  password: data.Password, joinOnce: false, withInternet: false)
+              .then((value) {
+            proceedSignalDevice(data, value);
+          });
+        } else {
+          FlutterWifiConnect.connectToSecureNetwork(data.SSId, data.Password)
+              .then((value) {
+            proceedSignalDevice(data, value);
+          });
+        }
+      } on Exception catch (ex) {
+        sendAgain(data);
+      }
     } else {
       WiFiForIoTPlugin.connect(data.SSId,
               password: data.Password,
               joinOnce: false,
               withInternet: false,
               security: NetworkSecurity.WPA)
-          .then((value) async {
+          .then((value) {
         proceedSignalDevice(data, value);
       });
     }

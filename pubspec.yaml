@@ -47,6 +47,7 @@ dependencies:
   url_launcher: ^6.1.7
   webview_flutter: ^4.0.7
   connectivity_plus: ^3.0.3
+  flutter_wifi_connect: ^0.0.7
 dev_dependencies:
   flutter_test:
     sdk: flutter
