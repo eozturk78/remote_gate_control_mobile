@@ -88,7 +88,6 @@ class _SplashScreenState extends State<SplashScreen> {
     } else {
       setState(() {
         _isEWifinable = true;
-        print("=======");
         if (_isEWifinable && _sendNavigator) {
           Future.delayed(const Duration(seconds: 5), () {
             checkWifiState();
@@ -194,6 +193,8 @@ class _SplashScreenState extends State<SplashScreen> {
 
   saveLocation() async {
     bool isSentRequest = false;
+    Apis apis = Apis();
+    SharedPreferences pref = await SharedPreferences.getInstance();
     do {
       try {
         final result = await InternetAddress.lookup('aesmartsystems.com');
@@ -201,20 +202,29 @@ class _SplashScreenState extends State<SplashScreen> {
           isSentRequest = true;
           LocationData locationData;
           locationData = await location.getLocation();
-          Apis apis = Apis();
-          SharedPreferences pref = await SharedPreferences.getInstance();
           apis
               .sendOpenDoorRequest(
                   locationData.latitude, locationData.longitude)
               .then((value) async {
-            print(value);
             if (value['sites'] != null) {
               pref.setString('sites', jsonEncode(value['sites']));
             }
           });
         }
+      } on PlatformException catch (_) {
+        print('not connected');
+        apis.sendOpenDoorRequest(0, 0).then((value) async {
+          if (value['sites'] != null) {
+            pref.setString('sites', jsonEncode(value['sites']));
+          }
+        });
       } on SocketException catch (_) {
         print('not connected');
+        apis.sendOpenDoorRequest(0, 0).then((value) async {
+          if (value['sites'] != null) {
+            pref.setString('sites', jsonEncode(value['sites']));
+          }
+        });
       }
     } while (!isSentRequest);
     _timer = Timer(const Duration(seconds: 1), () {
@@ -232,26 +242,34 @@ class _SplashScreenState extends State<SplashScreen> {
       await WiFiForIoTPlugin.forceWifiUsage(true);
       try {
         stepStatusText = "Kapı açılıyor.";
-        await http.get(Uri.parse(data.Url));
-        completeSave();
-        setState(() {
-          isOpenGate = true;
-          isSendRequest = true;
-          isSendRequestToDevice = true;
-        });
+        if (Platform.isAndroid) {
+          await http.get(Uri.parse(data.Url));
+          completeSave();
+          setState(() {
+            isOpenGate = true;
+            isSendRequest = true;
+            isSendRequestToDevice = false;
+          });
+        } else {
+          await launch(data.Url).whenComplete(() async => await closeWebView());
+
+          completeSave();
+          setState(() {
+            isOpenGate = true;
+            isSendRequest = true;
+            isSendRequestToDevice = false;
+          });
+        }
       } on Exception catch (ex) {
+        print("error === ");
+        print(ex);
         completeSave();
         setState(() {
           isOpenGate = true;
           isSendRequest = true;
-          isSendRequestToDevice = true;
+          isSendRequestToDevice = false;
         });
       }
-      stepStatusText = "Kapı açıldı.";
-      setState(() {
-        isSendRequest = true;
-        isSendRequestToDevice = true;
-      });
     } else {
       sendAgain(data);
     }
