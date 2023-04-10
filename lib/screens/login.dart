@@ -49,7 +49,7 @@ class _LoginState extends State<Login> {
         padding: EdgeInsets.all(15),
         child: Column(
           children: [
-            Image.asset("assets/images/logo-big.PNG"),
+            Image.asset("assets/images/logo-big.png"),
             TextFormField(
               controller: email,
               obscureText: false,

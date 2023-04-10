@@ -137,18 +137,19 @@ class _SplashScreenState extends State<SplashScreen> {
       var records = (data as List).map((e) => Site.fromJson(e)).toList();
       if (Platform.isAndroid &&
           records.length == 1 &&
-          records[0]?.Devices?.length == 1) {
+          records[0].Devices.length == 1) {
         _data = records[0];
         sendRequestToDevice(_data.Devices[0]);
         setState(() {
           isDataExist = true;
         });
-      } else if (records.length > 0 || records[0].Devices.length > 1) {
+      } else if (records.isNotEmpty || records[0].Devices.length > 1) {
         dataList = records.toList();
+        dataList.forEach(((element) => print(element.BuildingName)));
         setState(() {
           isDataExist = true;
           isSendRequestToDevice = false;
-        }); 
+        }); /* */
       } else {
         setState(() {
           isDataExist = false;
@@ -182,7 +183,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   completeSave() async {
-    await WiFiForIoTPlugin.forceWifiUsage(false);
+    if (Platform.isAndroid) await WiFiForIoTPlugin.forceWifiUsage(false);
     bool isDissConnected = false;
     do {
       isDissConnected = await WiFiForIoTPlugin.disconnect();
@@ -216,27 +217,10 @@ class _SplashScreenState extends State<SplashScreen> {
             }
           });
         }
-      } on PlatformException catch (_) {
+      } on TimeoutException catch (e) {
         apis.sendOpenDoorRequest(0, 0).then((value) async {
           if (value['sites'] != null) {
             pref.setString('sites', jsonEncode(value['sites']));
-          }
-        }).catchError((err) {
-          if (err is TimeoutException) {
-            Navigator.push(context,
-                MaterialPageRoute(builder: (context) => const Login(null)));
-          }
-        });
-      } on SocketException catch (_) {
-        print('not connected');
-        apis.sendOpenDoorRequest(0, 0).then((value) async {
-          if (value['sites'] != null) {
-            pref.setString('sites', jsonEncode(value['sites']));
-          }
-        }).catchError((err) {
-          if (err is TimeoutException) {
-            Navigator.push(context,
-                MaterialPageRoute(builder: (context) => const Login(null)));
           }
         });
       }
@@ -245,7 +229,7 @@ class _SplashScreenState extends State<SplashScreen> {
       if (Platform.isAndroid) {
         SystemNavigator.pop();
       } else if (Platform.isIOS) {
-        exit(0);
+        //exit(0);
       }
     });
   }
@@ -253,10 +237,10 @@ class _SplashScreenState extends State<SplashScreen> {
   proceedSignalDevice(Device data, bool value) async {
     if (value) {
       stepStatusText = "Kapıya bağlandı.";
-      await WiFiForIoTPlugin.forceWifiUsage(true);
       try {
         stepStatusText = "Kapı açılıyor.";
         if (Platform.isAndroid) {
+          await WiFiForIoTPlugin.forceWifiUsage(true);
           await http.get(Uri.parse(data.Url));
           completeSave();
           setState(() {
@@ -274,7 +258,6 @@ class _SplashScreenState extends State<SplashScreen> {
           });
         }
       } on Exception catch (ex) {
-        print("error === ");
         print(ex);
         completeSave();
         setState(() {
@@ -284,7 +267,15 @@ class _SplashScreenState extends State<SplashScreen> {
         });
       }
     } else {
-      sendAgain(data);
+      if (Platform.isAndroid) {
+        sendAgain(data);
+      } else {
+        setState(() {
+          isOpenGate = false;
+          isSendRequest = false;
+          isSendRequestToDevice = false;
+        });
+      }
     }
   }
 
@@ -297,14 +288,15 @@ class _SplashScreenState extends State<SplashScreen> {
                   password: data.Password, joinOnce: false, withInternet: false)
               .then((value) {
             proceedSignalDevice(data, value);
-          }).timeout(const Duration(seconds: 5),
-                  onTimeout: () => proceedSignalDevice(data, false));
+          }).timeout(
+            const Duration(seconds: 5),
+            onTimeout: () => proceedSignalDevice(data, false),
+          );
         } else {
-          FlutterWifiConnect.connectToSecureNetwork(data.SSId, data.Password)
+          /*FlutterWifiConnect.connectToSecureNetwork(data.SSId, data.Password)
               .then((value) {
             proceedSignalDevice(data, value);
-          }).timeout(const Duration(seconds: 5),
-                  onTimeout: () => proceedSignalDevice(data, false));
+          });*/
         }
       } on Exception catch (ex) {
         sendAgain(data);
@@ -317,8 +309,7 @@ class _SplashScreenState extends State<SplashScreen> {
               security: NetworkSecurity.WPA)
           .then((value) {
         proceedSignalDevice(data, value);
-      }).timeout(const Duration(seconds: 5),
-              onTimeout: () => proceedSignalDevice(data, false));
+      });
     }
   }
 
@@ -344,8 +335,16 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
             ),
             Padding(
-              padding: EdgeInsets.all(5),
-              child: Image.asset("assets/images/logo-big.PNG"),
+              padding: EdgeInsets.all(25),
+              child: Column(
+                children: [
+                  Image.asset("assets/images/logo-big.png"),
+                  Center(
+                    child: const Text(
+                        "Kapıyı açmak için, Wifi ağına katılım onayınız gereklidir."),
+                  )
+                ],
+              ),
             ),
             if (isSendRequestToDevice)
               Column(
@@ -402,7 +401,7 @@ class _SplashScreenState extends State<SplashScreen> {
                             ],
                           );
                         }),
-                    if (dataList.length > 1)
+                    if (dataList.isNotEmpty)
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           minimumSize: const Size.fromHeight(40),
@@ -450,7 +449,7 @@ class _SplashScreenState extends State<SplashScreen> {
                         )
                       else
                         Column(
-                          children: const [
+                          children: [
                             Icon(
                               Icons.remove_circle_outline_sharp,
                               size: 100.0,
@@ -476,8 +475,10 @@ class _SplashScreenState extends State<SplashScreen> {
                             ),
                         onPressed: () {
                           _timer?.cancel();
-                          isSendRequest = false;
-                          isSendRequestToDevice = true;
+                          setState(() {
+                            isSendRequest = false;
+                            isSendRequestToDevice = true;
+                          });
                           sendRequestToDevice(_data.Devices[0]);
                         },
                         child: const Text("Tekrar istek gönder"),
@@ -493,7 +494,9 @@ class _SplashScreenState extends State<SplashScreen> {
                             ),
                             onPressed: () {
                               _timer?.cancel();
-                              isSendRequest = false;
+                              setState(() {
+                                isSendRequest = false;
+                              });
                             },
                             child: const Text("Listeye dön")),
                       ElevatedButton(
