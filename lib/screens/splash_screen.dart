@@ -235,6 +235,8 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   proceedSignalDevice(Device data, bool value) async {
+    print("durum ==== ");
+    print(value);
     if (value) {
       stepStatusText = "Kapıya bağlandı.";
       try {
@@ -272,7 +274,7 @@ class _SplashScreenState extends State<SplashScreen> {
       } else {
         setState(() {
           isOpenGate = false;
-          isSendRequest = false;
+          isSendRequest = true;
           isSendRequestToDevice = false;
         });
       }
@@ -293,20 +295,16 @@ class _SplashScreenState extends State<SplashScreen> {
             onTimeout: () => proceedSignalDevice(data, false),
           );
         } else {
-          /*FlutterWifiConnect.connectToSecureNetwork(data.SSId, data.Password)
+          FlutterWifiConnect.connectToSecureNetwork(data.SSId, data.Password)
               .then((value) {
             proceedSignalDevice(data, value);
-          });*/
+          });
         }
       } on Exception catch (ex) {
         sendAgain(data);
       }
     } else {
-      WiFiForIoTPlugin.connect(data.SSId,
-              password: data.Password,
-              joinOnce: false,
-              withInternet: false,
-              security: NetworkSecurity.WPA)
+      FlutterWifiConnect.connectToSecureNetwork(data.SSId, data.Password)
           .then((value) {
         proceedSignalDevice(data, value);
       });
