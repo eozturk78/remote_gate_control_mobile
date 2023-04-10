@@ -135,20 +135,20 @@ class _SplashScreenState extends State<SplashScreen> {
   prepareScreen(data) {
     if (data != null) {
       var records = (data as List).map((e) => Site.fromJson(e)).toList();
-      if (records.length == 1 && records[0]?.Devices?.length == 1) {
+      if (Platform.isAndroid &&
+          records.length == 1 &&
+          records[0]?.Devices?.length == 1) {
         _data = records[0];
         sendRequestToDevice(_data.Devices[0]);
         setState(() {
           isDataExist = true;
         });
-      } else if (records.length > 1 || records[0].Devices.length > 1) {
+      } else if (records.length > 0 || records[0].Devices.length > 1) {
         dataList = records.toList();
-        dataList.forEach(((element) => print(element.BuildingName)));
-
         setState(() {
           isDataExist = true;
           isSendRequestToDevice = false;
-        }); /* */
+        }); 
       } else {
         setState(() {
           isDataExist = false;
@@ -209,13 +209,22 @@ class _SplashScreenState extends State<SplashScreen> {
             if (value['sites'] != null) {
               pref.setString('sites', jsonEncode(value['sites']));
             }
+          }).catchError((err) {
+            if (err is TimeoutException) {
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => const Login(null)));
+            }
           });
         }
       } on PlatformException catch (_) {
-        print('not connected');
         apis.sendOpenDoorRequest(0, 0).then((value) async {
           if (value['sites'] != null) {
             pref.setString('sites', jsonEncode(value['sites']));
+          }
+        }).catchError((err) {
+          if (err is TimeoutException) {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => const Login(null)));
           }
         });
       } on SocketException catch (_) {
@@ -223,6 +232,11 @@ class _SplashScreenState extends State<SplashScreen> {
         apis.sendOpenDoorRequest(0, 0).then((value) async {
           if (value['sites'] != null) {
             pref.setString('sites', jsonEncode(value['sites']));
+          }
+        }).catchError((err) {
+          if (err is TimeoutException) {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => const Login(null)));
           }
         });
       }
@@ -283,12 +297,14 @@ class _SplashScreenState extends State<SplashScreen> {
                   password: data.Password, joinOnce: false, withInternet: false)
               .then((value) {
             proceedSignalDevice(data, value);
-          });
+          }).timeout(const Duration(seconds: 5),
+                  onTimeout: () => proceedSignalDevice(data, false));
         } else {
           FlutterWifiConnect.connectToSecureNetwork(data.SSId, data.Password)
               .then((value) {
             proceedSignalDevice(data, value);
-          });
+          }).timeout(const Duration(seconds: 5),
+                  onTimeout: () => proceedSignalDevice(data, false));
         }
       } on Exception catch (ex) {
         sendAgain(data);
@@ -301,7 +317,8 @@ class _SplashScreenState extends State<SplashScreen> {
               security: NetworkSecurity.WPA)
           .then((value) {
         proceedSignalDevice(data, value);
-      });
+      }).timeout(const Duration(seconds: 5),
+              onTimeout: () => proceedSignalDevice(data, false));
     }
   }
 

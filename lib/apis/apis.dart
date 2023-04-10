@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -30,8 +31,8 @@ class Apis {
     SharedPreferences pref = await SharedPreferences.getInstance();
     String finalUrl = '$baseUrl/$serviceName/GetSiteUrlList';
     var result = await http.post(Uri.parse(finalUrl), headers: {
-        'Content-Type': 'application/json',
-        'token': pref.getString('token').toString(),
+      'Content-Type': 'application/json',
+      'token': pref.getString('token').toString(),
       'lang': lang
     });
     var body = jsonDecode(result.body);
@@ -66,8 +67,10 @@ class Apis {
         if (body['ErrorCode'] == 106) {
           pref.clear();
           showToast(body['ErrorMessage']);
+          throw TimeoutException(body['ErrorMessage']);
+        } else {
+          throw Exception(body['ErrorMessage']);
         }
-        throw Exception(body['ErrorMessage']);
       }
       return body['Response'];
     } else {
