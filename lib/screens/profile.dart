@@ -37,7 +37,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   getOpenGateRequestCount() async {
     Apis apis = Apis();
     await apis.getGateRequestCount().then((value) {
-      print(value);
       setState(() {
         requestCount = value['RequestCount'];
       });

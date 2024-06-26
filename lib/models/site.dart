@@ -16,8 +16,9 @@ class Site {
       Id: json['Id'],
       BuildingName: json['BuildingName'],
       Address: json['Address'],
-      Devices:
-          (json['Devices'] as List).map((i) => Device.fromJson(i)).toList(),
+      Devices: json['Devices'] != null
+          ? (json['Devices'] as List).map((i) => Device.fromJson(i)).toList()
+          : [],
     );
   }
 }

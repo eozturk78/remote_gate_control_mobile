@@ -2,11 +2,12 @@ import 'dart:convert';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:location/location.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:remote_gate_control_mobile/apis/apis.dart';
 import 'package:remote_gate_control_mobile/screens/forgot_password.dart';
 import 'package:remote_gate_control_mobile/screens/main.dart';
 import 'package:remote_gate_control_mobile/screens/splash_screen.dart';
+import 'package:remote_gate_control_mobile/toast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants.dart';
@@ -18,21 +19,54 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
-  Location location = new Location();
+  @override
+  void initState() {
+    super.initState();
+    checkPermissionStatus();
+  }
+
   Apis apis = Apis();
   TextEditingController email = new TextEditingController();
   TextEditingController password = new TextEditingController();
+  bool isPermissionDenied = false;
   onLogin() async {
     SharedPreferences pref = await SharedPreferences.getInstance();
     await apis.login(email.text, password.text).then((value) {
       pref.setString('token', value['token']);
       pref.setString('email', email.text);
       pref.setString('sites', jsonEncode(value['sites']));
-
-      print(pref.getString('sites'));
       Navigator.push(context,
           MaterialPageRoute(builder: (context) => const SplashScreen()));
     });
+  }
+
+  checkPermissionStatus() async {
+    PermissionStatus
+        permissionStatus; // note do not use PermissionStatus? permissionStatus;
+
+    while (true) {
+      try {
+        permissionStatus = await Permission.location.request();
+        print(permissionStatus);
+        if (permissionStatus == PermissionStatus.permanentlyDenied) {
+          isPermissionDenied = true;
+          setState(() {});
+          openAppSettings();
+        } else if (permissionStatus != PermissionStatus.granted) {
+          isPermissionDenied = true;
+          setState(() {});
+        } else {
+          setState(() {
+            isPermissionDenied = false;
+          });
+        }
+        break;
+      } catch (e) {
+        isPermissionDenied = false;
+        setState(() {});
+        await Future.delayed(Duration(milliseconds: 500), () {});
+      }
+    }
   }
 
   @override
@@ -49,7 +83,7 @@ class _LoginState extends State<Login> {
         padding: EdgeInsets.all(15),
         child: Column(
           children: [
-            Image.asset("assets/images/logo-big.png"),
+            Image.asset("assets/images/logo-big.PNG"),
             TextFormField(
               controller: email,
               obscureText: false,
@@ -102,24 +136,40 @@ class _LoginState extends State<Login> {
                 ),
               ),
             ),
+            if (isPermissionDenied)
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(40),
+                  backgroundColor: Colors.red,
+                ),
+                onPressed: () => checkPermissionStatus(),
+                child: Ink(
+                  decoration:
+                      BoxDecoration(borderRadius: BorderRadius.circular(20)),
+                  child: Container(
+                    width: 200,
+                    alignment: Alignment.center,
+                    child: Text(
+                      'Konum izni veriniz.',
+                      style: TextStyle(
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             const SizedBox(
               height: 40,
             ),
             const Text('Uygulamamızın verimli çalışabilmesi için;'),
             const Padding(
-              padding: EdgeInsets.all(15),
-              child: Text("1. Wifi bağlantınızın"),
-            ),
+                padding: EdgeInsets.all(15),
+                child: Text("1. İnternet erişimizin bulunması gerekmektedir.")),
             const Padding(
               padding: EdgeInsets.all(15),
-              child: Text("2. GPS konum hizmetleri"),
+              child: Text(
+                  "2. Uygulama açıldıktan sonra konum verisine izin vermeniz gerekmektedir."),
             ),
-            const Padding(
-              padding: EdgeInsets.all(15),
-              child: Center(
-                  child:
-                      Text("3. İnternet erişimizin bulunması gerekmektedir.")),
-            )
           ],
         ),
       )),

@@ -27,6 +27,25 @@ class Apis {
     }
   }
 
+  Future sendRequestTeltonika(String imei, String hexCode) async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    String finalUrl =
+        '$baseUrl/sendrequestteltonika?imei=$imei&hexCode=$hexCode';
+    var result = await http.get(Uri.parse(finalUrl),
+        headers: {'token': pref.getString('token').toString(), 'lang': lang});
+    var body = jsonDecode(result.body);
+    if (result.statusCode == 200) {
+      if (!body['IsSuccess']) {
+        showToast(body['ErrorMessage']);
+        throw Exception(body['ErrorMessage']);
+      }
+      return body['Response'];
+    } else {
+      showToast("something went wrong");
+      throw Exception("Something went wrong");
+    }
+  }
+
   Future getSiteUrlList() async {
     SharedPreferences pref = await SharedPreferences.getInstance();
     String finalUrl = '$baseUrl/$serviceName/GetSiteUrlList';
@@ -51,9 +70,6 @@ class Apis {
   Future sendOpenDoorRequest(double? lat, double? long) async {
     SharedPreferences pref = await SharedPreferences.getInstance();
     String finalUrl = '$baseUrl/$serviceName/SendOpenGateRequest';
-
-    print(finalUrl);
-
     var params = {'lat': lat, 'long': long};
     var result = await http
         .post(Uri.parse(finalUrl), body: jsonEncode(params), headers: {

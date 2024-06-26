@@ -16,7 +16,10 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
-    return GetMaterialApp(
+    return MaterialApp(
+      theme: ThemeData(
+        useMaterial3: false,
+      ),
       debugShowCheckedModeBanner: false,
       home: SafeArea(child: SplashScreen()),
     );
