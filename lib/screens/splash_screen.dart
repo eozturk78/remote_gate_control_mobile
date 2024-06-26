@@ -16,6 +16,7 @@ import 'package:remote_gate_control_mobile/screens/profile.dart';
 import 'package:remote_gate_control_mobile/toast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:io';
 
 import '../models/device.dart';
 import '../models/site.dart';
@@ -124,9 +125,9 @@ class _SplashScreenState extends State<SplashScreen> {
       if (value['sites'] != null) {
         pref.setString('sites', jsonEncode(value['sites']));
       }
-
       Future.delayed(Duration(seconds: 1), () {
         SystemNavigator.pop();
+        if(Platform.isIOS) exit(0);
       });
     }).catchError((err) {
       if (err is TimeoutException) {

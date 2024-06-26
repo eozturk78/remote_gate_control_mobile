@@ -1,18 +1,14 @@
 PODS:
-  - connectivity_plus (0.0.1):
-    - Flutter
-    - ReachabilitySwift
   - Flutter (1.0.0)
-  - flutter_wifi_connect (0.0.1):
-    - Flutter
   - fluttertoast (0.0.2):
     - Flutter
     - Toast
+  - geolocator_apple (1.2.0):
+    - Flutter
   - location (0.0.1):
     - Flutter
-  - permission_handler_apple (9.0.4):
+  - permission_handler_apple (9.3.0):
     - Flutter
-  - ReachabilitySwift (5.0.0)
   - shared_preferences_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -21,62 +17,50 @@ PODS:
     - Flutter
   - webview_flutter_wkwebview (0.0.1):
     - Flutter
-  - wifi_iot (0.0.1):
-    - Flutter
 
 DEPENDENCIES:
-  - connectivity_plus (from `.symlinks/plugins/connectivity_plus/ios`)
   - Flutter (from `Flutter`)
-  - flutter_wifi_connect (from `.symlinks/plugins/flutter_wifi_connect/ios`)
   - fluttertoast (from `.symlinks/plugins/fluttertoast/ios`)
+  - geolocator_apple (from `.symlinks/plugins/geolocator_apple/ios`)
   - location (from `.symlinks/plugins/location/ios`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
-  - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/ios`)
+  - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
   - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
   - webview_flutter_wkwebview (from `.symlinks/plugins/webview_flutter_wkwebview/ios`)
-  - wifi_iot (from `.symlinks/plugins/wifi_iot/ios`)
 
 SPEC REPOS:
   trunk:
-    - ReachabilitySwift
     - Toast
 
 EXTERNAL SOURCES:
-  connectivity_plus:
-    :path: ".symlinks/plugins/connectivity_plus/ios"
   Flutter:
     :path: Flutter
-  flutter_wifi_connect:
-    :path: ".symlinks/plugins/flutter_wifi_connect/ios"
   fluttertoast:
     :path: ".symlinks/plugins/fluttertoast/ios"
+  geolocator_apple:
+    :path: ".symlinks/plugins/geolocator_apple/ios"
   location:
     :path: ".symlinks/plugins/location/ios"
   permission_handler_apple:
     :path: ".symlinks/plugins/permission_handler_apple/ios"
   shared_preferences_foundation:
-    :path: ".symlinks/plugins/shared_preferences_foundation/ios"
+    :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
   url_launcher_ios:
     :path: ".symlinks/plugins/url_launcher_ios/ios"
   webview_flutter_wkwebview:
     :path: ".symlinks/plugins/webview_flutter_wkwebview/ios"
-  wifi_iot:
-    :path: ".symlinks/plugins/wifi_iot/ios"
 
 SPEC CHECKSUMS:
-  connectivity_plus: 413a8857dd5d9f1c399a39130850d02fe0feaf7e
   Flutter: f04841e97a9d0b0a8025694d0796dd46242b2854
-  flutter_wifi_connect: af8fc019b9bc57419f6d85ccf7b783f5de84218d
-  fluttertoast: eb263d302cc92e04176c053d2385237e9f43fad0
+  fluttertoast: 48c57db1b71b0ce9e6bba9f31c940ff4b001293c
+  geolocator_apple: 6cbaf322953988e009e5ecb481f07efece75c450
   location: 3a2eed4dd2fab25e7b7baf2a9efefe82b512d740
-  permission_handler_apple: 44366e37eaf29454a1e7b1b7d736c2cceaeb17ce
-  ReachabilitySwift: 985039c6f7b23a1da463388634119492ff86c825
+  permission_handler_apple: 9878588469a2b0d0fc1e048d9f43605f92e6cec2
   shared_preferences_foundation: 986fc17f3d3251412d18b0265f9c64113a8c2472
   Toast: 91b396c56ee72a5790816f40d3a94dd357abc196
   url_launcher_ios: 08a3dfac5fb39e8759aeb0abbd5d9480f30fc8b4
   webview_flutter_wkwebview: 2e2d318f21a5e036e2c3f26171342e95908bd60a
-  wifi_iot: b5aafd6f9b52f8a357383a1deabab45f31cd602d
 
 PODFILE CHECKSUM: 7368163408c647b7eb699d0d788ba6718e18fb8d
 
-COCOAPODS: 1.12.0
+COCOAPODS: 1.15.2

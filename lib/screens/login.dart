@@ -9,6 +9,9 @@ import 'package:remote_gate_control_mobile/screens/main.dart';
 import 'package:remote_gate_control_mobile/screens/splash_screen.dart';
 import 'package:remote_gate_control_mobile/toast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io';
+import 'package:geolocator/geolocator.dart';
+import 'dart:async';
 
 import '../constants.dart';
 
@@ -22,7 +25,7 @@ class _LoginState extends State<Login> {
   @override
   void initState() {
     super.initState();
-    checkPermissionStatus();
+    checkPermissionStatus(false);
   }
 
   Apis apis = Apis();
@@ -40,33 +43,87 @@ class _LoginState extends State<Login> {
     });
   }
 
-  checkPermissionStatus() async {
-    PermissionStatus
-        permissionStatus; // note do not use PermissionStatus? permissionStatus;
+  checkPermissionStatus(bool isButton) async {
+    if(Platform.isAndroid){
+      PermissionStatus
+          permissionStatus; // note do not use PermissionStatus? permissionStatus;
 
-    while (true) {
-      try {
-        permissionStatus = await Permission.location.request();
-        print(permissionStatus);
-        if (permissionStatus == PermissionStatus.permanentlyDenied) {
-          isPermissionDenied = true;
+      while (true) {
+        try {
+          permissionStatus = await Permission.locationWhenInUse.request();
+          print(permissionStatus);
+          if (permissionStatus == PermissionStatus.permanentlyDenied && isButton) {
+            isPermissionDenied = true;
+            setState(() {});
+             await openAppSettings();
+             checkLocationPermitted();
+          } else if (permissionStatus != PermissionStatus.granted) {
+            isPermissionDenied = true;
+            setState(() {});
+          } else {
+            setState(() {
+              isPermissionDenied = false;
+            });
+          }
+          break;
+        } catch (e) {
+          isPermissionDenied = false;
           setState(() {});
-          openAppSettings();
-        } else if (permissionStatus != PermissionStatus.granted) {
-          isPermissionDenied = true;
-          setState(() {});
-        } else {
-          setState(() {
-            isPermissionDenied = false;
-          });
+          await Future.delayed(Duration(milliseconds: 500), () {});
         }
-        break;
-      } catch (e) {
-        isPermissionDenied = false;
-        setState(() {});
-        await Future.delayed(Duration(milliseconds: 500), () {});
       }
+    }else{
+
+        LocationPermission permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied ||
+            permission == LocationPermission.deniedForever) {
+          LocationPermission permission = await Geolocator.requestPermission();
+          
+          if (permission == LocationPermission.whileInUse ||
+              permission == LocationPermission.always) {
+               
+            isPermissionDenied = false;
+            setState(() {});
+          } else if(permission == LocationPermission.deniedForever && isButton){
+             await openAppSettings();
+             checkLocationPermitted();
+          } else {
+            isPermissionDenied = true;
+
+            setState(() {});
+          }
+        } 
     }
+  }
+
+  Timer? _timer;
+  checkLocationPermitted() {
+      const oneSec = const Duration(seconds: 1);
+    _timer = new Timer.periodic(
+      oneSec,
+      (Timer timer) async{
+            if(Platform.isAndroid){
+                PermissionStatus
+                    permissionStatus; // note do not use PermissionStatus? permissionStatus;
+                    permissionStatus = await Permission.locationWhenInUse.request();
+                if (permissionStatus != PermissionStatus.granted) {
+                  isPermissionDenied = true;
+                  setState(() {});
+                        _timer?.cancel();
+                }
+            }else{
+
+                  LocationPermission permission = await Geolocator.checkPermission();
+                  if (permission == LocationPermission.whileInUse ||
+                      permission == LocationPermission.always) {
+                      
+                      isPermissionDenied = false;
+                      setState(() {});
+                        _timer?.cancel();
+                  } 
+            }
+      },
+    );
   }
 
   @override
@@ -142,7 +199,7 @@ class _LoginState extends State<Login> {
                   minimumSize: const Size.fromHeight(40),
                   backgroundColor: Colors.red,
                 ),
-                onPressed: () => checkPermissionStatus(),
+                onPressed: () => checkPermissionStatus(true),
                 child: Ink(
                   decoration:
                       BoxDecoration(borderRadius: BorderRadius.circular(20)),
