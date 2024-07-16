@@ -20,7 +20,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: '>=2.12.0 <=3.4.1'
+  sdk: '>=2.12.0 <=3.22.1'
 
 
 # Dependencies specify other packages that your package needs in order to work.
@@ -41,7 +41,6 @@ dependencies:
   shared_preferences: ^2.0.15
   http:
   fluttertoast: ^8.0.9  
-  location: ^4.4.0
   flutter_spinkit: ^5.1.0
   permission_handler: ^11.3.1
   url_launcher: ^6.1.7

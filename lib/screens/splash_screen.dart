@@ -7,8 +7,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
-import 'package:location/location.dart';
 import 'package:remote_gate_control_mobile/apis/apis.dart';
 import 'package:remote_gate_control_mobile/constants.dart';
 import 'package:remote_gate_control_mobile/screens/login.dart';
@@ -28,7 +28,6 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  Location location = new Location();
   List<Site> dataList = [];
   bool isSendRequest = false;
   bool isSendRequestToDevice = false;
@@ -115,7 +114,6 @@ class _SplashScreenState extends State<SplashScreen> {
     saveLocation();
   }
 
-  LocationData? locationData;
   saveLocation() async {
     Apis apis = Apis();
     SharedPreferences pref = await SharedPreferences.getInstance();
@@ -127,7 +125,7 @@ class _SplashScreenState extends State<SplashScreen> {
       }
       Future.delayed(Duration(seconds: 1), () {
         SystemNavigator.pop();
-        if(Platform.isIOS) exit(0);
+        if (Platform.isIOS) exit(0);
       });
     }).catchError((err) {
       if (err is TimeoutException) {
@@ -148,24 +146,19 @@ class _SplashScreenState extends State<SplashScreen> {
     return radiusOfEarth * 2 * asin(sqrt(a)) * 1000;
   }
 
+  Position? locationData;
   sendRequestToDevice(Device data) async {
     setState(() {
       isSendRequestToDevice = true;
       stepStatusText = "Konum Alınıyor.";
     });
-    locationData = await Future.any([
-      location.getLocation(),
-      Future.delayed(Duration(seconds: 5), () {
-        if (locationData == null) {
-          isLocationFailed = true;
-          isOpenGate = false;
-          isSendRequest = false;
-          isSendRequestToDevice = false;
-        }
-        setState(() {});
-      }),
-    ]);
-    if (locationData == null) {
+    try {
+      locationData = await Geolocator.getCurrentPosition(
+        timeLimit: Duration(seconds: 5),
+        desiredAccuracy: LocationAccuracy.low,
+      );
+    } catch (e) {
+      print(e.toString());
       setState(() {
         isOpenGate = false;
         isSendRequest = false;
@@ -175,9 +168,7 @@ class _SplashScreenState extends State<SplashScreen> {
       showToast("Konum alınamadı");
       return;
     }
-    setState(() {
-      stepStatusText = "Konum Alındı.";
-    });
+
     var dist = calculateDistance(
         locationData?.latitude, locationData?.longitude, data.lat, data.long);
     if (dist < 51) {
@@ -203,6 +194,7 @@ class _SplashScreenState extends State<SplashScreen> {
     }
   }
 
+  bool isSendAgain = true;
   sendToBackend(Device data) async {
     setState(() {
       isSendRequestToDevice = true;
@@ -210,7 +202,7 @@ class _SplashScreenState extends State<SplashScreen> {
     });
     try {
       Apis apis = Apis();
-      var resp = await apis
+      await apis
           .sendRequestTeltonika(data.SerialNumber, data.HexCode!)
           .then((value) {
         completeSave();
@@ -220,7 +212,7 @@ class _SplashScreenState extends State<SplashScreen> {
           isSendRequestToDevice = false;
           isLocationFailed = false;
         });
-      }).timeout(Duration(seconds: 5));
+      }).timeout(Duration(seconds: 2));
     } on TimeoutException catch (_) {
       setState(() {
         isOpenGate = false;
@@ -463,7 +455,7 @@ class _SplashScreenState extends State<SplashScreen> {
                               color: Colors.red,
                             ),
                             Text(
-                              "Lütfen internet bağlantınızı kontrol edin.",
+                              "Kapı açılamadı.",
                               style: TextStyle(
                                   color: Colors.red,
                                   fontSize: 15,

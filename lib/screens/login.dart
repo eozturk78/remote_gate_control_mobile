@@ -44,84 +44,50 @@ class _LoginState extends State<Login> {
   }
 
   checkPermissionStatus(bool isButton) async {
-    if(Platform.isAndroid){
-      PermissionStatus
-          permissionStatus; // note do not use PermissionStatus? permissionStatus;
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      LocationPermission permission = await Geolocator.requestPermission();
 
-      while (true) {
-        try {
-          permissionStatus = await Permission.locationWhenInUse.request();
-          print(permissionStatus);
-          if (permissionStatus == PermissionStatus.permanentlyDenied && isButton) {
-            isPermissionDenied = true;
-            setState(() {});
-             await openAppSettings();
-             checkLocationPermitted();
-          } else if (permissionStatus != PermissionStatus.granted) {
-            isPermissionDenied = true;
-            setState(() {});
-          } else {
-            setState(() {
-              isPermissionDenied = false;
-            });
-          }
-          break;
-        } catch (e) {
-          isPermissionDenied = false;
-          setState(() {});
-          await Future.delayed(Duration(milliseconds: 500), () {});
-        }
+      if (permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always) {
+        isPermissionDenied = false;
+        setState(() {});
+      } else if (permission == LocationPermission.deniedForever && isButton) {
+        await openAppSettings();
+        checkLocationPermitted();
+      } else {
+        isPermissionDenied = true;
+
+        setState(() {});
       }
-    }else{
-
-        LocationPermission permission = await Geolocator.checkPermission();
-        if (permission == LocationPermission.denied ||
-            permission == LocationPermission.deniedForever) {
-          LocationPermission permission = await Geolocator.requestPermission();
-          
-          if (permission == LocationPermission.whileInUse ||
-              permission == LocationPermission.always) {
-               
-            isPermissionDenied = false;
-            setState(() {});
-          } else if(permission == LocationPermission.deniedForever && isButton){
-             await openAppSettings();
-             checkLocationPermitted();
-          } else {
-            isPermissionDenied = true;
-
-            setState(() {});
-          }
-        } 
     }
   }
 
   Timer? _timer;
   checkLocationPermitted() {
-      const oneSec = const Duration(seconds: 1);
+    const oneSec = const Duration(seconds: 1);
     _timer = new Timer.periodic(
       oneSec,
-      (Timer timer) async{
-            if(Platform.isAndroid){
-                PermissionStatus
-                    permissionStatus; // note do not use PermissionStatus? permissionStatus;
-                    permissionStatus = await Permission.locationWhenInUse.request();
-                if (permissionStatus != PermissionStatus.granted) {
-                  isPermissionDenied = true;
-                  setState(() {});
-                        _timer?.cancel();
-                }
-            }else{
-
-                  LocationPermission permission = await Geolocator.checkPermission();
-                  if (permission == LocationPermission.whileInUse ||
-                      permission == LocationPermission.always) {
-                      
-                      isPermissionDenied = false;
-                      setState(() {});
-                        _timer?.cancel();
-                  } 
-            }
+      (Timer timer) async {
+        if (Platform.isAndroid) {
+          PermissionStatus
+              permissionStatus; // note do not use PermissionStatus? permissionStatus;
+          permissionStatus = await Permission.locationWhenInUse.request();
+          if (permissionStatus != PermissionStatus.granted) {
+            isPermissionDenied = true;
+            setState(() {});
+            _timer?.cancel();
+          }
+        } else {
+          LocationPermission permission = await Geolocator.checkPermission();
+          if (permission == LocationPermission.whileInUse ||
+              permission == LocationPermission.always) {
+            isPermissionDenied = false;
+            setState(() {});
+            _timer?.cancel();
+          }
+        }
       },
     );
   }
