@@ -110,15 +110,12 @@ class _SplashScreenState extends State<SplashScreen> {
     }
   }
 
-  completeSave() async {
-    saveLocation();
-  }
 
-  saveLocation() async {
+  saveLocation(String? siteId) async {
     Apis apis = Apis();
     SharedPreferences pref = await SharedPreferences.getInstance();
     apis
-        .sendOpenDoorRequest(locationData?.latitude, locationData?.longitude)
+        .sendOpenDoorRequest(locationData?.latitude, locationData?.longitude, siteId)
         .then((value) async {
       if (value['sites'] != null) {
         pref.setString('sites', jsonEncode(value['sites']));
@@ -205,7 +202,7 @@ class _SplashScreenState extends State<SplashScreen> {
       await apis
           .sendRequestTeltonika(data.SerialNumber, data.HexCode!)
           .then((value) {
-        completeSave();
+        saveLocation(data.SiteId);
         setState(() {
           isOpenGate = true;
           isSendRequest = true;

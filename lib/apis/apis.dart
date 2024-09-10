@@ -67,10 +67,10 @@ class Apis {
     }
   }
 
-  Future sendOpenDoorRequest(double? lat, double? long) async {
+  Future sendOpenDoorRequest(double? lat, double? long, String? siteId) async {
     SharedPreferences pref = await SharedPreferences.getInstance();
     String finalUrl = '$baseUrl/$serviceName/SendOpenGateRequest';
-    var params = {'lat': lat, 'long': long};
+    var params = {'lat': lat, 'long': long, 'SiteId': siteId};
     var result = await http
         .post(Uri.parse(finalUrl), body: jsonEncode(params), headers: {
       'Content-Type': 'application/json',
