@@ -35,9 +35,11 @@ class _LoginState extends State<Login> {
   onLogin() async {
     SharedPreferences pref = await SharedPreferences.getInstance();
     await apis.login(email.text, password.text).then((value) {
+      pref.setBool('isSiteManager', value['isSiteManager'] == 1 ? true : false);
       pref.setString('token', value['token']);
       pref.setString('email', email.text);
       pref.setString('sites', jsonEncode(value['sites']));
+
       Navigator.push(context,
           MaterialPageRoute(builder: (context) => const SplashScreen()));
     });

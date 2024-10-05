@@ -110,12 +110,12 @@ class _SplashScreenState extends State<SplashScreen> {
     }
   }
 
-
   saveLocation(String? siteId) async {
     Apis apis = Apis();
     SharedPreferences pref = await SharedPreferences.getInstance();
     apis
-        .sendOpenDoorRequest(locationData?.latitude, locationData?.longitude, siteId)
+        .sendOpenDoorRequest(
+            locationData?.latitude, locationData?.longitude, siteId)
         .then((value) async {
       if (value['sites'] != null) {
         pref.setString('sites', jsonEncode(value['sites']));
@@ -165,7 +165,10 @@ class _SplashScreenState extends State<SplashScreen> {
       showToast("Konum alınamadı");
       return;
     }
-
+    if (data.lat == 1.2 ||
+        data.long == 1.2 ||
+        data.lat == null ||
+        data.long == null) showToast("Bu cihaz aktif değil.");
     var dist = calculateDistance(
         locationData?.latitude, locationData?.longitude, data.lat, data.long);
     if (dist < 51) {

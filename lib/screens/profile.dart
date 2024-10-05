@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:remote_gate_control_mobile/apis/apis.dart';
 import 'package:remote_gate_control_mobile/screens/delete_my_account.dart';
 import 'package:remote_gate_control_mobile/screens/login.dart';
-import 'package:remote_gate_control_mobile/screens/sites.dart';
+import 'package:remote_gate_control_mobile/screens/site_list.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants.dart';
@@ -19,6 +19,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   String? email = "";
   int? requestCount = 0;
+  bool? isSiteManager = false;
   @override
   void initState() {
     // TODO: implement initState
@@ -31,6 +32,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     SharedPreferences pref = await SharedPreferences.getInstance();
     setState(() {
       email = pref.getString("email");
+      isSiteManager = pref.getBool("isSiteManager");
     });
   }
 
@@ -71,6 +73,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 SizedBox(
                   height: 150,
                 ),
+                if (isSiteManager == true)
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(40),
+                      backgroundColor: kPrimaryColor,
+                    ),
+                    onPressed: () => {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => SiteListScreen()))
+                    },
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.person,
+                          size: 24,
+                        ),
+                        Text("Kullanıcıları Yönet")
+                      ],
+                    ),
+                  ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size.fromHeight(40),
@@ -122,6 +148,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onPressed: () async {
                     SharedPreferences pref =
                         await SharedPreferences.getInstance();
+
                     await pref.clear();
                     Navigator.push(
                         context,

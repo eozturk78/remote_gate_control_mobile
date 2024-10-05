@@ -5,7 +5,6 @@ class Device {
   final String DeviceId;
   final String SerialNumber;
   final String Name;
-  final String Url;
   final String SSId;
   final String Password;
   final double? lat;
@@ -19,7 +18,6 @@ class Device {
       required this.DeviceId,
       required this.SerialNumber,
       required this.Name,
-      required this.Url,
       required this.SSId,
       required this.Password,
       this.lat,
@@ -34,7 +32,6 @@ class Device {
       DeviceId: json['DeviceId'],
       SerialNumber: json['SerialNumber'] ?? "",
       Name: json['Name'],
-      Url: json['Url'],
       SSId: json['SSId'],
       Password: json['Password'],
       lat: json['Lat'],
