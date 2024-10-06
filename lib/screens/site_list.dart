@@ -98,7 +98,7 @@ class _SiteListScreenState extends State<SiteListScreen> {
                             context,
                             MaterialPageRoute(
                                 builder: (context) => SiteDetail(null)),
-                          );
+                          ).then((onValue) => getSiteManagerSiteList());
                         },
                         child: Text("Bilgileri Güncelle"))
                   ],

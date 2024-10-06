@@ -210,10 +210,66 @@ class Apis {
     }
   }
 
-  Future getSiteUserList(String siteId) async {
+  Future getSiteUserList(String siteId, String? searchText) async {
     SharedPreferences pref = await SharedPreferences.getInstance();
     String finalUrl = '$baseUrl/Site/GetSiteUserList?siteId=${siteId}';
+    if (searchText != null) finalUrl += '&searchText=${searchText}';
     var result = await http.get(Uri.parse(finalUrl), headers: {
+      'Content-Type': 'application/json',
+      'token': pref.getString('token').toString(),
+      'lang': lang
+    });
+    var body = jsonDecode(result.body);
+    if (result.statusCode == 200) {
+      if (!body['IsSuccess']) {
+        if (body['ErrorCode'] == 106) pref.clear();
+        showToast(body['ErrorMessage']);
+        throw Exception(body['ErrorMessage']);
+      }
+      return body['Response'];
+    } else {
+      showToast("something went wrong");
+      throw Exception("Something went wrong");
+    }
+  }
+
+  Future getSiteUserDetails(String siteUserId) async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    String finalUrl =
+        '$baseUrl/Site/GetSiteUserDetails?siteUserId=${siteUserId}';
+    var result = await http.get(Uri.parse(finalUrl), headers: {
+      'Content-Type': 'application/json',
+      'token': pref.getString('token').toString(),
+      'lang': lang
+    });
+    var body = jsonDecode(result.body);
+    if (result.statusCode == 200) {
+      if (!body['IsSuccess']) {
+        if (body['ErrorCode'] == 106) pref.clear();
+        showToast(body['ErrorMessage']);
+        throw Exception(body['ErrorMessage']);
+      }
+      return body['Response'];
+    } else {
+      showToast("something went wrong");
+      throw Exception("Something went wrong");
+    }
+  }
+
+  Future setSiteUser(String? siteId, String? siteUserId, String userTitle,
+      String phoneNumber, String email) async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    String finalUrl = '$baseUrl/Site/SetSiteUser';
+    var params = {
+      'siteId': siteId.toString(),
+      'siteUserId': siteUserId ?? null,
+      'userTitle': userTitle.toString(),
+      'phoneNumber': phoneNumber.toString(),
+      'email': email.toString(),
+    };
+    print(params);
+    var result = await http
+        .post(Uri.parse(finalUrl), body: jsonEncode(params), headers: {
       'Content-Type': 'application/json',
       'token': pref.getString('token').toString(),
       'lang': lang

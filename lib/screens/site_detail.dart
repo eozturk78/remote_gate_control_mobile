@@ -179,6 +179,7 @@ class _SiteDetailState extends State<SiteDetail> {
                     if (resp != null && resp['records'] != null) {
                       showToast("Başarıyla kaydedildi");
                     }
+                    Navigator.pop(context);
                   })
                 },
                 child: Row(
