@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:dropdown_search2/dropdown_search2.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:remote_gate_control_mobile/apis/apis.dart';
 import 'package:remote_gate_control_mobile/screens/forgot_password.dart';
 import 'package:remote_gate_control_mobile/screens/main.dart';
@@ -57,6 +58,65 @@ class _UserDetailState extends State<UserDetail> {
     }
   }
 
+  Widget areYouSureDeleteUser(BuildContext context) {
+    return AlertDialog(
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: 0,
+        vertical: 0,
+      ),
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: 0,
+        vertical: 0,
+      ),
+      content: StatefulBuilder(
+        builder: (BuildContext context, setState) {
+          return SizedBox(
+            height: 150,
+            width: MediaQuery.of(context).size.width * 0.9,
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Text("Kullanıcıyı silmek istediğinize emin misiniz?"),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: kPrimaryColor,
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).pop(1);
+                        },
+                        child: Text("Evet, eminim"),
+                      ),
+                      SizedBox(
+                        width: 10,
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey,
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).pop(0);
+                        },
+                        child: const Text("Vazgeç"),
+                      ),
+                    ],
+                  )
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -64,6 +124,25 @@ class _UserDetailState extends State<UserDetail> {
         title: Text("Kullanıcı Bilgileri"),
         backgroundColor: kPrimaryColor,
         centerTitle: true,
+        actions: [
+          if (siteUserId != "")
+            IconButton(
+              icon: const Icon(Icons.delete),
+              tooltip: 'Open shopping cart',
+              onPressed: () async {
+                showDialog(
+                        context: context,
+                        builder: (context) => areYouSureDeleteUser(context))
+                    .then((value) {
+                  if (value == 1) {
+                    apis.deleteSiteUser(siteUserId).then((onValue) {
+                      Navigator.pop(context);
+                    });
+                  } else {}
+                });
+              },
+            ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Padding(

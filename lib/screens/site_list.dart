@@ -115,7 +115,7 @@ class _SiteListScreenState extends State<SiteListScreen> {
                             builder: (context) => SiteUserListScreen()),
                       );
                     },
-                    child: Text("Kullanıcıları Düzenle"))
+                    child: Text("Kullanıcılara Git"))
               ],
             ),
           );

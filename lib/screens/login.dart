@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:remote_gate_control_mobile/apis/apis.dart';
 import 'package:remote_gate_control_mobile/screens/forgot_password.dart';
 import 'package:remote_gate_control_mobile/screens/main.dart';
+import 'package:remote_gate_control_mobile/screens/payment_information.dart';
 import 'package:remote_gate_control_mobile/screens/splash_screen.dart';
 import 'package:remote_gate_control_mobile/toast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -35,13 +36,20 @@ class _LoginState extends State<Login> {
   onLogin() async {
     SharedPreferences pref = await SharedPreferences.getInstance();
     await apis.login(email.text, password.text).then((value) {
+      print(value);
       pref.setBool('isSiteManager', value['isSiteManager'] == 1 ? true : false);
       pref.setString('token', value['token']);
       pref.setString('email', email.text);
       pref.setString('sites', jsonEncode(value['sites']));
-
-      Navigator.push(context,
-          MaterialPageRoute(builder: (context) => const SplashScreen()));
+      if (value['isPaymentRequired'] == 1) {
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => const PaymentInformationScreen()));
+      } else {
+        Navigator.push(context,
+            MaterialPageRoute(builder: (context) => const SplashScreen()));
+      }
     });
   }
 
@@ -108,12 +116,16 @@ class _LoginState extends State<Login> {
         padding: EdgeInsets.all(15),
         child: Column(
           children: [
-            Image.asset("assets/images/logo-big.PNG"),
+            Image.asset(
+              "assets/images/logo-big.PNG",
+              width: 300,
+              fit: BoxFit.cover,
+            ),
             TextFormField(
               controller: email,
               obscureText: false,
               decoration: const InputDecoration(
-                hintText: 'E-Posta',
+                labelText: 'E-Posta',
               ),
             ),
             const SizedBox(
@@ -122,7 +134,7 @@ class _LoginState extends State<Login> {
             TextFormField(
               controller: password,
               obscureText: true,
-              decoration: const InputDecoration(hintText: 'Şifre'),
+              decoration: const InputDecoration(labelText: 'Şifre'),
             ),
             TextButton(
               style: TextButton.styleFrom(

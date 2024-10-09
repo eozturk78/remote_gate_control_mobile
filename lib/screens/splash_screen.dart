@@ -12,6 +12,7 @@ import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:remote_gate_control_mobile/apis/apis.dart';
 import 'package:remote_gate_control_mobile/constants.dart';
 import 'package:remote_gate_control_mobile/screens/login.dart';
+import 'package:remote_gate_control_mobile/screens/payment_information.dart';
 import 'package:remote_gate_control_mobile/screens/profile.dart';
 import 'package:remote_gate_control_mobile/toast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -44,6 +45,13 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   checkInternet() async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    if (pref.getBool("needAPayment") == true) {
+      Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (context) => const PaymentInformationScreen()));
+    }
     bool result = await InternetConnectionChecker().hasConnection;
     isConnected = result;
     setState(() {});
@@ -117,7 +125,13 @@ class _SplashScreenState extends State<SplashScreen> {
         .sendOpenDoorRequest(
             locationData?.latitude, locationData?.longitude, siteId)
         .then((value) async {
-      if (value['sites'] != null) {
+      if (value['isPaymentRequired'] == 1) {
+        pref.remove("token");
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => const PaymentInformationScreen()));
+      } else if (value['sites'] != null) {
         pref.setString('sites', jsonEncode(value['sites']));
       }
       Future.delayed(Duration(seconds: 1), () {
@@ -155,7 +169,6 @@ class _SplashScreenState extends State<SplashScreen> {
         desiredAccuracy: LocationAccuracy.low,
       );
     } catch (e) {
-      print(e.toString());
       setState(() {
         isOpenGate = false;
         isSendRequest = false;

@@ -256,6 +256,28 @@ class Apis {
     }
   }
 
+  Future deleteSiteUser(String siteUserId) async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    String finalUrl = '$baseUrl/Site/DeleteSiteUser?siteUserId=${siteUserId}';
+    var result = await http.delete(Uri.parse(finalUrl), headers: {
+      'Content-Type': 'application/json',
+      'token': pref.getString('token').toString(),
+      'lang': lang
+    });
+    var body = jsonDecode(result.body);
+    if (result.statusCode == 200) {
+      if (!body['IsSuccess']) {
+        if (body['ErrorCode'] == 106) pref.clear();
+        showToast(body['ErrorMessage']);
+        throw Exception(body['ErrorMessage']);
+      }
+      return body['Response'];
+    } else {
+      showToast("something went wrong");
+      throw Exception("Something went wrong");
+    }
+  }
+
   Future setSiteUser(String? siteId, String? siteUserId, String userTitle,
       String phoneNumber, String email) async {
     SharedPreferences pref = await SharedPreferences.getInstance();
@@ -267,7 +289,6 @@ class Apis {
       'phoneNumber': phoneNumber.toString(),
       'email': email.toString(),
     };
-    print(params);
     var result = await http
         .post(Uri.parse(finalUrl), body: jsonEncode(params), headers: {
       'Content-Type': 'application/json',
@@ -345,6 +366,63 @@ class Apis {
       return body['Response'];
     } else {
       showToast("something went wrong");
+      throw Exception("Something went wrong");
+    }
+  }
+
+  Future getPaymentInformation() async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    String finalUrl = '$baseUrl/User/GetPaymentInformation';
+    var result = await http.get(Uri.parse(finalUrl), headers: {
+      'Content-Type': 'application/json',
+      'token': pref.getString('token').toString(),
+      'lang': lang
+    });
+    var body = jsonDecode(result.body);
+    if (result.statusCode == 200) {
+      if (!body['IsSuccess']) {
+        if (body['ErrorCode'] == 106) {
+          pref.clear();
+          showToast(body['ErrorMessage']);
+          throw TimeoutException(body['ErrorMessage']);
+        } else if (body['ErrorCode'] == 101) {
+          showToast(body['ErrorMessage']);
+          throw ArgumentError(body['ErrorMessage']);
+        } else {
+          throw Exception(body['ErrorMessage']);
+        }
+      }
+      return body['Response'];
+    } else {
+      showToast("something went wrong");
+      throw Exception("Something went wrong");
+    }
+  }
+
+  Future setPaymentInfo(String? paymentCode) async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    String finalUrl = '$baseUrl/$serviceName/SetPaymentInfo';
+    var params = {'paymentCode': paymentCode};
+    var result = await http
+        .post(Uri.parse(finalUrl), body: jsonEncode(params), headers: {
+      'Content-Type': 'application/json',
+      'token': pref.getString('token').toString(),
+      'lang': lang
+    });
+    var body = jsonDecode(result.body);
+    if (result.statusCode == 200) {
+      if (!body['IsSuccess']) {
+        if (body['ErrorCode'] == 106) {
+          pref.clear();
+          showToast(body['ErrorMessage']);
+          throw TimeoutException(body['ErrorMessage']);
+        } else {
+          throw Exception(body['ErrorMessage']);
+        }
+      }
+      return body['Response'];
+    } else {
+      // showToast("something went wrong");
       throw Exception("Something went wrong");
     }
   }

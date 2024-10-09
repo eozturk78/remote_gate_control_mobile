@@ -170,7 +170,7 @@ class _SiteDetailState extends State<SiteDetail> {
                       .setSiteManagerSite(
                           siteDetail?.SiteId,
                           buildName.text,
-                          _selectedCountry?.CountryId,
+                           _selectedCountry?.CountryId,
                           _selectedCity?.CityId,
                           address.text,
                           vehicleCapacity.text,
