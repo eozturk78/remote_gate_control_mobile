@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:remote_gate_control_mobile/apis/apis.dart';
 import 'package:remote_gate_control_mobile/constants.dart';
 import 'package:remote_gate_control_mobile/screens/login.dart';
@@ -38,6 +39,7 @@ class _SplashScreenState extends State<SplashScreen> {
   String stepStatusText = "";
   var _data = null;
   bool isConnected = true;
+  bool needAPayment = true;
   @override
   void initState() {
     super.initState();
@@ -55,6 +57,7 @@ class _SplashScreenState extends State<SplashScreen> {
     bool result = await InternetConnectionChecker().hasConnection;
     isConnected = result;
     setState(() {});
+    needAPayment = false;
     if (isConnected) {
       navigateUser();
     }
@@ -126,18 +129,18 @@ class _SplashScreenState extends State<SplashScreen> {
             locationData?.latitude, locationData?.longitude, siteId)
         .then((value) async {
       if (value['isPaymentRequired'] == 1) {
-        pref.remove("token");
+        //    pref.remove("token");
         Navigator.push(
             context,
             MaterialPageRoute(
                 builder: (context) => const PaymentInformationScreen()));
       } else if (value['sites'] != null) {
         pref.setString('sites', jsonEncode(value['sites']));
+        Future.delayed(Duration(seconds: 1), () {
+          SystemNavigator.pop();
+          if (Platform.isIOS) exit(0);
+        });
       }
-      Future.delayed(Duration(seconds: 1), () {
-        SystemNavigator.pop();
-        if (Platform.isIOS) exit(0);
-      });
     }).catchError((err) {
       if (err is TimeoutException) {
         Navigator.push(context,
@@ -175,6 +178,7 @@ class _SplashScreenState extends State<SplashScreen> {
         isSendRequestToDevice = false;
         isLocationFailed = true;
       });
+      checkPermissionStatus(false);
       showToast("Konum alınamadı");
       return;
     }
@@ -296,6 +300,55 @@ class _SplashScreenState extends State<SplashScreen> {
     );
   }
 
+  bool isPermissionDenied = false;
+  checkPermissionStatus(bool isButton) async {
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      LocationPermission permission = await Geolocator.requestPermission();
+
+      if (permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always) {
+        isPermissionDenied = false;
+        setState(() {});
+      } else if (permission == LocationPermission.deniedForever && isButton) {
+        await openAppSettings();
+        checkLocationPermitted();
+      } else {
+        isPermissionDenied = true;
+
+        setState(() {});
+      }
+    }
+  }
+
+  checkLocationPermitted() {
+    const oneSec = const Duration(seconds: 1);
+    _timer = new Timer.periodic(
+      oneSec,
+      (Timer timer) async {
+        if (Platform.isAndroid) {
+          PermissionStatus
+              permissionStatus; // note do not use PermissionStatus? permissionStatus;
+          permissionStatus = await Permission.locationWhenInUse.request();
+          if (permissionStatus != PermissionStatus.granted) {
+            isPermissionDenied = true;
+            setState(() {});
+            _timer?.cancel();
+          }
+        } else {
+          LocationPermission permission = await Geolocator.checkPermission();
+          if (permission == LocationPermission.whileInUse ||
+              permission == LocationPermission.always) {
+            isPermissionDenied = false;
+            setState(() {});
+            _timer?.cancel();
+          }
+        }
+      },
+    );
+  }
+
   var isLocationFailed = false;
   @override
   Widget build(BuildContext context) {
@@ -333,6 +386,28 @@ class _SplashScreenState extends State<SplashScreen> {
                 child: Column(
                   children: [
                     Text("Konumunuz alınamadı"),
+                    if (isPermissionDenied)
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(40),
+                          backgroundColor: Colors.red,
+                        ),
+                        onPressed: () => checkPermissionStatus(true),
+                        child: Ink(
+                          decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20)),
+                          child: Container(
+                            width: 200,
+                            alignment: Alignment.center,
+                            child: Text(
+                              'Konum izni veriniz.',
+                              style: TextStyle(
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                           minimumSize: const Size.fromHeight(40),
@@ -374,6 +449,7 @@ class _SplashScreenState extends State<SplashScreen> {
                       ),
                       onPressed: () {
                         SystemNavigator.pop();
+                        if (Platform.isIOS) exit(0);
                       },
                       child: const Text("Uygulamayı Kapat"),
                     ),

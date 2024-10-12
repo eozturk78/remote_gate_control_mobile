@@ -35,7 +35,7 @@ class _PaymentInformationScreenState extends State<PaymentInformationScreen> {
   String? bank1, bankHolder1, iban1;
   String? bank2, bankHolder2, iban2;
   String? bank3, bankHolder3, iban3, paymentCode;
-  String? price;
+  String? price, maxOpenGateCount;
   @override
   void initState() {
     super.initState();
@@ -47,7 +47,10 @@ class _PaymentInformationScreenState extends State<PaymentInformationScreen> {
 
     apis.getPaymentInformation().then((value) {
       setState(() {
+        print(value);
         paymentCode = value['paymentCode'];
+        print(value['maxOpenGateCount']);
+        maxOpenGateCount = value['maxOpenGateCount'];
         if (paymentCode == null) {
           Navigator.pushReplacement(context,
               MaterialPageRoute(builder: (context) => const SplashScreen()));
@@ -99,276 +102,288 @@ class _PaymentInformationScreenState extends State<PaymentInformationScreen> {
         centerTitle: true,
         automaticallyImplyLeading: false,
       ),
-      body: SingleChildScrollView(
-        child: Container(
-          alignment: Alignment.center,
-          margin: EdgeInsets.all(10),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: EdgeInsets.all(25),
+      body: paymentCode != null
+          ? SingleChildScrollView(
+              child: Container(
+                alignment: Alignment.center,
+                margin: EdgeInsets.all(10),
                 child: Column(
-                  children: [Image.asset("assets/images/logo-big.PNG")],
-                ),
-              ),
-              Column(
-                children: [
-                  if (paymentInfoIsReceived == true)
-                    Column(
-                      children: const [
-                        Icon(
-                          Icons.check_circle,
-                          color: Colors.green,
-                          size: 100.0,
-                        ),
-                        SizedBox(
-                          height: 20,
-                        ),
-                        Center(
-                          child: Text(
-                            "Ödeme bildiriminiz alındı çok yakın bir zamanda sizinle iletişime geçilecektir.",
-                            style: TextStyle(
-                                fontSize: 18.0, fontWeight: FontWeight.bold),
-                          ),
-                        )
-                      ],
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.all(25),
+                      child: Column(
+                        children: [Image.asset("assets/images/logo-big.PNG")],
+                      ),
                     ),
-                  if (paymentInfoIsReceived == false)
                     Column(
                       children: [
-                        Text(
-                            "Uygulamamızın ücretsiz paketi kapsamında 20 defa kapı açma limitini aştınız, kullanmaya devam etmek için aşağıdaki banka hesaplarından birine ödeme yapınız"),
-                        SizedBox(
-                          height: 15,
-                        ),
-                        if (iban1 != null &&
-                            bankHolder1 != null &&
-                            bank1 != null)
+                        if (paymentInfoIsReceived == true)
                           Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    iban1.toString(),
-                                    style: labelText,
-                                  ),
-                                  TextButton(
-                                      onPressed: () {
-                                        Clipboard.setData(ClipboardData(
-                                            text: iban1.toString()));
-                                        showToast("IBAN kopyalandı");
-                                      },
-                                      style: TextButton.styleFrom(
-                                        minimumSize: Size.zero,
-                                        padding: EdgeInsets.zero,
-                                        tapTargetSize:
-                                            MaterialTapTargetSize.shrinkWrap,
-                                      ),
-                                      child: Icon(
-                                        Icons.copy,
-                                        color: Colors.black,
-                                        size: 15,
-                                      ))
-                                ],
+                            children: const [
+                              Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                                size: 100.0,
                               ),
                               SizedBox(
-                                height: 2,
+                                height: 20,
                               ),
-                              Text(
-                                bank1.toString(),
-                                style: labelText,
-                              ),
-                              SizedBox(
-                                height: 2,
-                              ),
-                              Text(
-                                bankHolder1.toString(),
-                                style: labelText,
-                              ),
-                              SizedBox(
-                                height: 1,
-                              ),
+                              Center(
+                                child: Text(
+                                  "Ödeme bildiriminiz alındı çok yakın bir zamanda sizinle iletişime geçilecektir.",
+                                  style: TextStyle(
+                                      fontSize: 18.0,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              )
                             ],
                           ),
-                        SizedBox(
-                          height: 15,
-                        ),
-                        if (iban2 != null &&
-                            bankHolder2 != null &&
-                            bank2 != null)
+                        if (paymentInfoIsReceived == false)
                           Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    iban2.toString(),
-                                    style: labelText,
-                                  ),
-                                  SizedBox(
-                                    width: 2,
-                                  ),
-                                  TextButton(
-                                      onPressed: () {
-                                        Clipboard.setData(ClipboardData(
-                                            text: iban2.toString()));
-                                        showToast("IBAN kopyalandı");
-                                      },
-                                      style: TextButton.styleFrom(
-                                        minimumSize: Size.zero,
-                                        padding: EdgeInsets.zero,
-                                        tapTargetSize:
-                                            MaterialTapTargetSize.shrinkWrap,
-                                      ),
-                                      child: Icon(
-                                        Icons.copy,
-                                        color: Colors.black,
-                                        size: 15,
-                                      ))
-                                ],
-                              ),
+                              Text(
+                                  "Uygulamamızın ücretsiz paketi kapsamında ${maxOpenGateCount} defa kapı açma limitini aştınız, kullanmaya devam etmek için aşağıdaki banka hesaplarından birine ödeme yapınız"),
                               SizedBox(
-                                height: 2,
+                                height: 15,
+                              ),
+                              if (iban1 != null &&
+                                  bankHolder1 != null &&
+                                  bank1 != null)
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          iban1.toString(),
+                                          style: labelText,
+                                        ),
+                                        TextButton(
+                                            onPressed: () {
+                                              Clipboard.setData(ClipboardData(
+                                                  text: iban1.toString()));
+                                              showToast("IBAN kopyalandı");
+                                            },
+                                            style: TextButton.styleFrom(
+                                              minimumSize: Size.zero,
+                                              padding: EdgeInsets.zero,
+                                              tapTargetSize:
+                                                  MaterialTapTargetSize
+                                                      .shrinkWrap,
+                                            ),
+                                            child: Icon(
+                                              Icons.copy,
+                                              color: Colors.black,
+                                              size: 15,
+                                            ))
+                                      ],
+                                    ),
+                                    SizedBox(
+                                      height: 2,
+                                    ),
+                                    Text(
+                                      bank1.toString(),
+                                      style: labelText,
+                                    ),
+                                    SizedBox(
+                                      height: 2,
+                                    ),
+                                    Text(
+                                      bankHolder1.toString(),
+                                      style: labelText,
+                                    ),
+                                    SizedBox(
+                                      height: 1,
+                                    ),
+                                  ],
+                                ),
+                              SizedBox(
+                                height: 15,
+                              ),
+                              if (iban2 != null &&
+                                  bankHolder2 != null &&
+                                  bank2 != null)
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          iban2.toString(),
+                                          style: labelText,
+                                        ),
+                                        SizedBox(
+                                          width: 2,
+                                        ),
+                                        TextButton(
+                                            onPressed: () {
+                                              Clipboard.setData(ClipboardData(
+                                                  text: iban2.toString()));
+                                              showToast("IBAN kopyalandı");
+                                            },
+                                            style: TextButton.styleFrom(
+                                              minimumSize: Size.zero,
+                                              padding: EdgeInsets.zero,
+                                              tapTargetSize:
+                                                  MaterialTapTargetSize
+                                                      .shrinkWrap,
+                                            ),
+                                            child: Icon(
+                                              Icons.copy,
+                                              color: Colors.black,
+                                              size: 15,
+                                            ))
+                                      ],
+                                    ),
+                                    SizedBox(
+                                      height: 2,
+                                    ),
+                                    Text(
+                                      bank2.toString(),
+                                      style: labelText,
+                                    ),
+                                    SizedBox(
+                                      height: 2,
+                                    ),
+                                    Text(
+                                      bankHolder2.toString(),
+                                      style: labelText,
+                                    ),
+                                    SizedBox(
+                                      height: 1,
+                                    ),
+                                  ],
+                                ),
+                              SizedBox(
+                                height: 15,
+                              ),
+                              if (iban3 != null &&
+                                  bankHolder3 != null &&
+                                  bank3 != null)
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          iban3.toString(),
+                                          style: labelText,
+                                        ),
+                                        SizedBox(
+                                          width: 2,
+                                        ),
+                                        TextButton(
+                                            onPressed: () {
+                                              Clipboard.setData(ClipboardData(
+                                                  text: iban3.toString()));
+                                              showToast("IBAN kopyalandı");
+                                            },
+                                            style: TextButton.styleFrom(
+                                              minimumSize: Size.zero,
+                                              padding: EdgeInsets.zero,
+                                              tapTargetSize:
+                                                  MaterialTapTargetSize
+                                                      .shrinkWrap,
+                                            ),
+                                            child: Icon(
+                                              Icons.copy,
+                                              color: Colors.black,
+                                              size: 15,
+                                            ))
+                                      ],
+                                    ),
+                                    SizedBox(
+                                      height: 2,
+                                    ),
+                                    Text(
+                                      bank3.toString(),
+                                      style: labelText,
+                                    ),
+                                    SizedBox(
+                                      height: 2,
+                                    ),
+                                    Text(
+                                      bankHolder3.toString(),
+                                      style: labelText,
+                                    ),
+                                    SizedBox(
+                                      height: 1,
+                                    ),
+                                  ],
+                                ),
+                              SizedBox(
+                                height: 50,
                               ),
                               Text(
-                                bank2.toString(),
-                                style: labelText,
+                                "${price.toString()} TL ödeme beklenmektedir",
+                                style:
+                                    TextStyle(color: Colors.red, fontSize: 20),
                               ),
                               SizedBox(
-                                height: 2,
+                                height: 15,
                               ),
                               Text(
-                                bankHolder2.toString(),
-                                style: labelText,
-                              ),
-                              SizedBox(
-                                height: 1,
-                              ),
-                            ],
-                          ),
-                        SizedBox(
-                          height: 15,
-                        ),
-                        if (iban3 != null &&
-                            bankHolder3 != null &&
-                            bank3 != null)
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    iban3.toString(),
-                                    style: labelText,
-                                  ),
-                                  SizedBox(
-                                    width: 2,
-                                  ),
-                                  TextButton(
-                                      onPressed: () {
-                                        Clipboard.setData(ClipboardData(
-                                            text: iban3.toString()));
-                                        showToast("IBAN kopyalandı");
-                                      },
-                                      style: TextButton.styleFrom(
-                                        minimumSize: Size.zero,
-                                        padding: EdgeInsets.zero,
-                                        tapTargetSize:
-                                            MaterialTapTargetSize.shrinkWrap,
-                                      ),
-                                      child: Icon(
-                                        Icons.copy,
-                                        color: Colors.black,
-                                        size: 15,
-                                      ))
-                                ],
-                              ),
-                              SizedBox(
-                                height: 2,
+                                "Önemli Not",
+                                style:
+                                    TextStyle(color: Colors.red, fontSize: 20),
                               ),
                               Text(
-                                bank3.toString(),
-                                style: labelText,
+                                paymentCode.toString(),
+                                style:
+                                    TextStyle(color: Colors.red, fontSize: 20),
                               ),
                               SizedBox(
-                                height: 2,
+                                height: 15,
                               ),
                               Text(
-                                bankHolder3.toString(),
-                                style: labelText,
+                                "Lütfen yaptığınız ödemelerde açıklamaya mutlaka  yukarıdaki kodu yazın",
+                                style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                               SizedBox(
-                                height: 1,
+                                height: 15,
                               ),
-                            ],
-                          ),
-                        SizedBox(
-                          height: 50,
-                        ),
-                        Text(
-                          "${price.toString()} TL ödeme beklenmektedir",
-                          style: TextStyle(color: Colors.red, fontSize: 20),
-                        ),
-                        SizedBox(
-                          height: 15,
-                        ),
-                        Text(
-                          "Önemli Not",
-                          style: TextStyle(color: Colors.red, fontSize: 20),
-                        ),
-                        Text(
-                          paymentCode.toString(),
-                          style: TextStyle(color: Colors.red, fontSize: 20),
-                        ),
-                        SizedBox(
-                          height: 15,
-                        ),
-                        Text(
-                          "Lütfen yaptığınız ödemelerde açıklamaya mutlaka  yukarıdaki kodu yazın",
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        SizedBox(
-                          height: 15,
-                        ),
-                        ElevatedButton(
-                          onPressed: () {
-                            Apis apis = Apis();
+                              ElevatedButton(
+                                onPressed: () {
+                                  Apis apis = Apis();
 
-                            apis.setPaymentInfo(paymentCode).then((value) {
-                              paymentInfoIsReceived = true;
-                              setState(() {});
-                            });
-                          },
-                          child: Text("Ödeme Bildir"),
-                          style: ElevatedButton.styleFrom(
-                              maximumSize: Size.fromHeight(40),
-                              backgroundColor: kPrimaryColor),
-                        ),
+                                  apis
+                                      .setPaymentInfo(paymentCode)
+                                      .then((value) {
+                                    paymentInfoIsReceived = true;
+                                    setState(() {});
+                                  });
+                                },
+                                child: Text("Ödeme Bildir"),
+                                style: ElevatedButton.styleFrom(
+                                    maximumSize: Size.fromHeight(40),
+                                    backgroundColor: kPrimaryColor),
+                              ),
+                            ],
+                          ),
                       ],
                     ),
-                ],
-              ),
-              TextButton(
-                style: TextButton.styleFrom(
-                  textStyle: const TextStyle(fontSize: 12),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        textStyle: const TextStyle(fontSize: 12),
+                      ),
+                      onPressed: () async {
+                        const url =
+                            'https://aesmartsystems.com'; //Twitter's URL
+                        await launch(url);
+                      },
+                      child: const Text(
+                          'Hizmetlerimiz hakkında bilgi almak için tıklayın'),
+                    ),
+                  ],
                 ),
-                onPressed: () async {
-                  const url = 'https://aesmartsystems.com'; //Twitter's URL
-                  await launch(url);
-                },
-                child: const Text(
-                    'Hizmetlerimiz hakkında bilgi almak için tıklayın'),
               ),
-            ],
-          ),
-        ),
-      ),
+            )
+          : Text(""),
     );
   }
 }

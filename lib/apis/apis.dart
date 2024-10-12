@@ -386,7 +386,8 @@ class Apis {
           showToast(body['ErrorMessage']);
           throw TimeoutException(body['ErrorMessage']);
         } else if (body['ErrorCode'] == 101) {
-          showToast(body['ErrorMessage']);
+          // Payment is not required
+          //    showToast(body['ErrorMessage']);
           throw ArgumentError(body['ErrorMessage']);
         } else {
           throw Exception(body['ErrorMessage']);
