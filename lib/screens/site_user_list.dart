@@ -84,7 +84,6 @@ class _SiteUserListScreenState extends State<SiteUserListScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            tooltip: 'Open shopping cart',
             onPressed: () async {
               SharedPreferences pref = await SharedPreferences.getInstance();
               pref.remove("siteUserId");

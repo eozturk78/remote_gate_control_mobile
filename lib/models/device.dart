@@ -10,6 +10,7 @@ class Device {
   final double? lat;
   final double? long;
   final bool? remoteControl;
+  final int? isSiteActive;
   final bool? IsTeltonika;
   final String? HexCode;
 
@@ -23,6 +24,7 @@ class Device {
       this.lat,
       this.long,
       this.remoteControl,
+      this.isSiteActive,
       required this.IsTeltonika,
       required this.HexCode});
 
@@ -36,6 +38,7 @@ class Device {
       Password: json['Password'],
       lat: json['Lat'],
       long: json['Long'],
+      isSiteActive: json['isSiteActive'],
       remoteControl: json['RemoteControl'],
       IsTeltonika: json['IsTeltonika'],
       HexCode: json['HexCode'],

@@ -12,6 +12,7 @@ import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:remote_gate_control_mobile/apis/apis.dart';
 import 'package:remote_gate_control_mobile/constants.dart';
+import 'package:remote_gate_control_mobile/screens/device_payment_information.dart';
 import 'package:remote_gate_control_mobile/screens/login.dart';
 import 'package:remote_gate_control_mobile/screens/payment_information.dart';
 import 'package:remote_gate_control_mobile/screens/profile.dart';
@@ -34,8 +35,10 @@ class _SplashScreenState extends State<SplashScreen> {
   bool isSendRequest = false;
   bool isSendRequestToDevice = false;
   bool? isOpenGate;
+  bool isDevicePaymentRequired = false;
   bool? isDataExist;
   Timer? _timer;
+  late String _deviceId;
   String stepStatusText = "";
   var _data = null;
   bool isConnected = true;
@@ -77,8 +80,22 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   late final StreamSubscription<InternetConnectionStatus> _listener;
-  InternetConnectionStatus? _internetStatus;
+  late Timer _timerGate;
   navigateUser() async {
+    getGateList();
+    int _start = 10;
+    _timerGate = new Timer.periodic(
+      const Duration(seconds: 1),
+      (Timer timer) {
+        if (_start == 0) {
+          getGateList();
+          _start = 10;
+        } else {
+          _start--;
+        }
+      },
+    );
+
     isSendRequestToDevice = true;
     SharedPreferences pref = await SharedPreferences.getInstance();
     if (pref.getString("token") == null ||
@@ -103,10 +120,13 @@ class _SplashScreenState extends State<SplashScreen> {
       var records = (data as List).map((e) => Site.fromJson(e)).toList();
       if (records.isNotEmpty || records[0].Devices.length > 1) {
         dataList = records.toList();
+
+        dataList.sort((a, b) =>
+            b.IsActiveDevice.toString().compareTo(a.IsActiveDevice.toString()));
         setState(() {
           isDataExist = true;
           isSendRequestToDevice = false;
-        }); /* */
+        });
       } else {
         setState(() {
           isDataExist = false;
@@ -121,12 +141,13 @@ class _SplashScreenState extends State<SplashScreen> {
     }
   }
 
-  saveLocation(String? siteId) async {
+  saveLocation(String? siteId, String deviceId, bool isOpenedDoor) async {
     Apis apis = Apis();
     SharedPreferences pref = await SharedPreferences.getInstance();
+    _deviceId = deviceId;
     apis
-        .sendOpenDoorRequest(
-            locationData?.latitude, locationData?.longitude, siteId)
+        .sendOpenDoorRequest(locationData?.latitude, locationData?.longitude,
+            siteId, deviceId, isOpenedDoor, dist)
         .then((value) async {
       if (value['isPaymentRequired'] == 1) {
         //    pref.remove("token");
@@ -134,15 +155,49 @@ class _SplashScreenState extends State<SplashScreen> {
             context,
             MaterialPageRoute(
                 builder: (context) => const PaymentInformationScreen()));
+      } else if (value['paymentCode'] != null) {
+        isDevicePaymentRequired = true;
+        setState(() {});
       } else if (value['sites'] != null) {
         pref.setString('sites', jsonEncode(value['sites']));
-        Future.delayed(Duration(seconds: 1), () {
-          SystemNavigator.pop();
-          if (Platform.isIOS) exit(0);
-        });
+        if (isOpenedDoor)
+          Future.delayed(Duration(seconds: 1), () {
+            SystemNavigator.pop();
+            if (Platform.isIOS) exit(0);
+          });
       }
     }).catchError((err) {
       if (err is TimeoutException) {
+        Navigator.push(context,
+            MaterialPageRoute(builder: (context) => const Login(null)));
+      }
+    });
+  }
+
+  getGateList() async {
+    Apis apis = Apis();
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    apis.getGateList().then((value) async {
+      if (value['isPaymentRequired'] == 1) {
+        //    pref.remove("token");
+        _timerGate.cancel();
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => const PaymentInformationScreen()));
+      } else if (value['paymentCode'] != null) {
+        isDevicePaymentRequired = true;
+        _timerGate.cancel();
+        setState(() {});
+      } else if (value['sites'] != null) {
+        pref.setString('sites', jsonEncode(value['sites']));
+
+        String? s = pref.getString('sites');
+        prepareScreen(jsonDecode(s!));
+      }
+    }).catchError((err) {
+      if (err is TimeoutException) {
+        _timerGate.cancel();
         Navigator.push(context,
             MaterialPageRoute(builder: (context) => const Login(null)));
       }
@@ -161,6 +216,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Position? locationData;
+  dynamic dist = 0;
   sendRequestToDevice(Device data) async {
     setState(() {
       isSendRequestToDevice = true;
@@ -168,47 +224,45 @@ class _SplashScreenState extends State<SplashScreen> {
     });
     try {
       locationData = await Geolocator.getCurrentPosition(
-        timeLimit: Duration(seconds: 5),
-        desiredAccuracy: LocationAccuracy.low,
+        timeLimit: Duration(seconds: 10),
+        desiredAccuracy: LocationAccuracy.best,
       );
+      dist = calculateDistance(
+          locationData?.latitude, locationData?.longitude, data.lat, data.long);
     } catch (e) {
-      setState(() {
+      /*setState(() {
         isOpenGate = false;
         isSendRequest = false;
         isSendRequestToDevice = false;
         isLocationFailed = true;
-      });
+      });*/
       checkPermissionStatus(false);
-      showToast("Konum alınamadı");
-      return;
+      //showMessagePage("Konum alınamadı");
     }
-    if (data.lat == 1.2 ||
-        data.long == 1.2 ||
-        data.lat == null ||
-        data.long == null) showToast("Bu cihaz aktif değil.");
-    var dist = calculateDistance(
-        locationData?.latitude, locationData?.longitude, data.lat, data.long);
-    if (dist < 51) {
-      if (data.HexCode == null) {
-        showToast("Bir hata oluştu");
-        setState(() {
-          isOpenGate = false;
-          isSendRequest = false;
-          isSendRequestToDevice = false;
-        });
-        return;
-      }
+
+    if (data.HexCode == null) {
+      showMessagePage("Cihaz şuanda aktif değil");
+    } else if (data.remoteControl == false && dist > 201) {
+      showMessagePage("Cihazınıza uzaktasınız. ");
+    } else if (dist < 201) {
       sendToBackend(data);
     } else if (data.remoteControl == true) {
       showDialog(context: context, builder: (context) => onOpenImage(context))
           .then((value) {
         if (value == 1) {
           sendToBackend(data);
-        } else {}
+        }
       });
-    } else {
-      showToast("Cihazınıza uzaktasınız. ");
     }
+  }
+
+  showMessagePage(String msg) {
+    showToast(msg);
+    setState(() {
+      isOpenGate = false;
+      isSendRequest = false;
+      isSendRequestToDevice = false;
+    });
   }
 
   bool isSendAgain = true;
@@ -222,7 +276,7 @@ class _SplashScreenState extends State<SplashScreen> {
       await apis
           .sendRequestTeltonika(data.SerialNumber, data.HexCode!)
           .then((value) {
-        saveLocation(data.SiteId);
+        saveLocation(data.SiteId, data.DeviceId, true);
         setState(() {
           isOpenGate = true;
           isSendRequest = true;
@@ -231,6 +285,7 @@ class _SplashScreenState extends State<SplashScreen> {
         });
       }).timeout(Duration(seconds: 2));
     } on TimeoutException catch (_) {
+      saveLocation(data.SiteId, data.DeviceId, false);
       setState(() {
         isOpenGate = false;
         isSendRequest = true;
@@ -354,11 +409,24 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AE Smart Systems'),
-        backgroundColor: kPrimaryColor,
-        centerTitle: true,
-        automaticallyImplyLeading: false,
-      ),
+          title: const Text('AE Smart Systems'),
+          backgroundColor: kPrimaryColor,
+          centerTitle: false,
+          automaticallyImplyLeading: false,
+          actions: [
+            /* TextButton(
+              onPressed: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const GuestTokenListScreen()));
+              },
+              child: Text(
+                "Misafirim Var",
+                style: TextStyle(color: Colors.white),
+              ),
+            )*/
+          ]),
       body: SingleChildScrollView(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -491,7 +559,13 @@ class _SplashScreenState extends State<SplashScreen> {
                                     child: ElevatedButton(
                                       style: ElevatedButton.styleFrom(
                                         minimumSize: const Size.fromHeight(60),
-                                        backgroundColor: kPrimaryColor,
+                                        backgroundColor: dataList[index]
+                                                    .Devices[j]
+                                                    .isSiteActive! ==
+                                                1
+                                            ? kPrimaryColor
+                                            : const Color.fromARGB(
+                                                179, 158, 158, 158),
                                       ),
                                       onPressed: () {
                                         _timer?.cancel();
@@ -499,8 +573,22 @@ class _SplashScreenState extends State<SplashScreen> {
                                         sendRequestToDevice(
                                             dataList[index].Devices[j]);
                                       },
-                                      child: Text(
-                                        dataList[index].Devices[j].Name,
+                                      child: Column(
+                                        children: [
+                                          Text(
+                                            dataList[index].Devices[j].Name,
+                                          ),
+                                          if (dataList[index]
+                                                  .Devices[j]
+                                                  .isSiteActive ==
+                                              0)
+                                            Text(
+                                              "Bu kapı aktif değil",
+                                              style: TextStyle(
+                                                  fontSize: 10,
+                                                  color: Colors.red),
+                                            )
+                                        ],
                                       ),
                                     ),
                                   );
@@ -533,6 +621,52 @@ class _SplashScreenState extends State<SplashScreen> {
                                   fontSize: 15,
                                   fontWeight: FontWeight.bold),
                             ),
+                            if (isDevicePaymentRequired! == true)
+                              Padding(
+                                padding: EdgeInsets.all(10),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      "Hizmetinizin aksamaması için kapınızda bağlı bulunan sim kartınızın yıllık veri iletim ücretinin ödenmesi gerekmektedir. Lütfen konu ile ilgili site yöneticinize başvurun",
+                                      style: TextStyle(
+                                          color: Colors.red, fontSize: 15),
+                                    ),
+                                    Row(
+                                      children: [
+                                        ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: kPrimaryColor,
+                                          ),
+                                          onPressed: () async {
+                                            SharedPreferences pref =
+                                                await SharedPreferences
+                                                    .getInstance();
+
+                                            pref.setString(
+                                                "deviceId", _deviceId);
+                                            Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        const DevicePaymentInformationScreen()));
+                                          },
+                                          child: const Text("Daha Fazla Bilgi"),
+                                        ),
+                                        Spacer(),
+                                        ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.grey,
+                                          ),
+                                          onPressed: () {
+                                            SystemNavigator.pop();
+                                          },
+                                          child: const Text("Uygulamayı Kapat"),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              )
                           ],
                         )
                       else

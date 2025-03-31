@@ -56,14 +56,14 @@ android {
         compileSdkVersion 34
         minSdkVersion flutter.minSdkVersion//flutter.minSdkVersion
         targetSdkVersion flutter.targetSdkVersion
-        versionCode 24 //flutterVersionCode.toInteger()
-        versionName '1.3.11'//flutterVersionName
+        versionCode 25 //flutterVersionCode.toInteger()
+        versionName '1.3.12'//flutterVersionName
     }
 
    signingConfigs {
        release {
            keyAlias keystoreProperties['keyAlias']
-           keyPassword keystoreProper2ties['keyPassword']
+           keyPassword keystoreProperties['keyPassword']
            storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
            storePassword keystoreProperties['storePassword']
        }

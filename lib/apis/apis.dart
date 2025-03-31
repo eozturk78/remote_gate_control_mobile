@@ -67,12 +67,47 @@ class Apis {
     }
   }
 
-  Future sendOpenDoorRequest(double? lat, double? long, String? siteId) async {
+  Future sendOpenDoorRequest(double? lat, double? long, String? siteId,
+      String? deviceId, bool? isGateOpened, double dist) async {
     SharedPreferences pref = await SharedPreferences.getInstance();
     String finalUrl = '$baseUrl/$serviceName/SendOpenGateRequest';
-    var params = {'lat': lat, 'long': long, 'SiteId': siteId};
+    var params = {
+      'lat': lat,
+      'long': long,
+      'SiteId': siteId,
+      'DeviceId': deviceId,
+      'IsOpenedGate': isGateOpened,
+      'Distance': dist
+    };
     var result = await http
         .post(Uri.parse(finalUrl), body: jsonEncode(params), headers: {
+      'Content-Type': 'application/json',
+      'token': pref.getString('token').toString(),
+      'lang': lang
+    });
+    var body = jsonDecode(result.body);
+    if (result.statusCode == 200) {
+      if (!body['IsSuccess']) {
+        if (body['ErrorCode'] == 106) {
+          pref.clear();
+          showToast(body['ErrorMessage']);
+          throw TimeoutException(body['ErrorMessage']);
+        } else {
+          throw Exception(body['ErrorMessage']);
+        }
+      }
+      return body['Response'];
+    } else {
+      // showToast("something went wrong");
+      throw Exception("Something went wrong");
+    }
+  }
+
+  Future getGateList() async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    String finalUrl = '$baseUrl/$serviceName/GetGateList';
+
+    var result = await http.get(Uri.parse(finalUrl), headers: {
       'Content-Type': 'application/json',
       'token': pref.getString('token').toString(),
       'lang': lang
@@ -161,6 +196,85 @@ class Apis {
       return body['Response'];
     } else {
       showToast("something went wrong");
+      throw Exception("Something went wrong");
+    }
+  }
+
+  Future getGuestTokenList() async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    String finalUrl = '$baseUrl/$serviceName/GetGuestTokenList';
+    var result = await http.get(Uri.parse(finalUrl), headers: {
+      'Content-Type': 'application/json',
+      'token': pref.getString('token').toString(),
+      'lang': lang
+    });
+    var body = jsonDecode(result.body);
+    if (result.statusCode == 200) {
+      if (!body['IsSuccess']) {
+        if (body['ErrorCode'] == 106) pref.clear();
+        showToast(body['ErrorMessage']);
+        throw Exception(body['ErrorMessage']);
+      }
+      return body['Response'];
+    } else {
+      showToast("something went wrong");
+      throw Exception("Something went wrong");
+    }
+  }
+
+  Future getGuestTokenDetails(String? guestTokenId) async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    String finalUrl =
+        '$baseUrl/$serviceName/GetGuestTokenDetails?guestTokenId=$guestTokenId';
+    var result = await http.get(Uri.parse(finalUrl), headers: {
+      'Content-Type': 'application/json',
+      'token': pref.getString('token').toString(),
+      'lang': lang
+    });
+    var body = jsonDecode(result.body);
+    if (result.statusCode == 200) {
+      if (!body['IsSuccess']) {
+        if (body['ErrorCode'] == 106) pref.clear();
+        showToast(body['ErrorMessage']);
+        throw Exception(body['ErrorMessage']);
+      }
+      return body['Response'];
+    } else {
+      showToast("something went wrong");
+      throw Exception("Something went wrong");
+    }
+  }
+
+  Future setGuestToken(
+      String deviceId, String durationDay, bool isOneTimeUsedToken) async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    String finalUrl = '$baseUrl/$serviceName/SetGuestToken';
+    var params = {
+      'deviceId': deviceId,
+      'expireDuration': int.parse(durationDay!),
+      'isOneTimeUsedToken': isOneTimeUsedToken
+    };
+    print(pref.getString('token').toString());
+    var result = await http
+        .post(Uri.parse(finalUrl), body: jsonEncode(params), headers: {
+      'Content-Type': 'application/json',
+      'token': pref.getString('token').toString(),
+      'lang': lang
+    });
+    var body = jsonDecode(result.body);
+    if (result.statusCode == 200) {
+      if (!body['IsSuccess']) {
+        if (body['ErrorCode'] == 106) {
+          pref.clear();
+          showToast(body['ErrorMessage']);
+          throw TimeoutException(body['ErrorMessage']);
+        } else {
+          throw Exception(body['ErrorMessage']);
+        }
+      }
+      return body['Response'];
+    } else {
+      // showToast("something went wrong");
       throw Exception("Something went wrong");
     }
   }
@@ -400,6 +514,33 @@ class Apis {
     }
   }
 
+  Future getDevicePaymentInformation(String deviceId) async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    String finalUrl =
+        '$baseUrl/User/GetDevicePaymentInformation?deviceId=${deviceId}';
+    var result = await http.get(Uri.parse(finalUrl), headers: {
+      'Content-Type': 'application/json',
+      'token': pref.getString('token').toString(),
+      'lang': lang
+    });
+    var body = jsonDecode(result.body);
+    if (result.statusCode == 200) {
+      if (!body['IsSuccess']) {
+        if (body['ErrorCode'] == 106) {
+          pref.clear();
+          showToast(body['ErrorMessage']);
+          throw TimeoutException(body['ErrorMessage']);
+        } else {
+          throw Exception(body['ErrorMessage']);
+        }
+      }
+      return body['Response'];
+    } else {
+      showToast("something went wrong");
+      throw Exception("Something went wrong");
+    }
+  }
+
   Future setPaymentInfo(String? paymentCode) async {
     SharedPreferences pref = await SharedPreferences.getInstance();
     String finalUrl = '$baseUrl/$serviceName/SetPaymentInfo';
@@ -411,6 +552,35 @@ class Apis {
       'lang': lang
     });
     var body = jsonDecode(result.body);
+    if (result.statusCode == 200) {
+      if (!body['IsSuccess']) {
+        if (body['ErrorCode'] == 106) {
+          pref.clear();
+          showToast(body['ErrorMessage']);
+          throw TimeoutException(body['ErrorMessage']);
+        } else {
+          throw Exception(body['ErrorMessage']);
+        }
+      }
+      return body['Response'];
+    } else {
+      // showToast("something went wrong");
+      throw Exception("Something went wrong");
+    }
+  }
+
+  Future setDevicePaymentInfo(String? paymentCode, String? deviceId) async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    String finalUrl = '$baseUrl/$serviceName/SetDevicePaymentInfo';
+    var params = {'paymentCode': paymentCode, 'deviceId': deviceId};
+    var result = await http
+        .post(Uri.parse(finalUrl), body: jsonEncode(params), headers: {
+      'Content-Type': 'application/json',
+      'token': pref.getString('token').toString(),
+      'lang': lang
+    });
+    var body = jsonDecode(result.body);
+
     if (result.statusCode == 200) {
       if (!body['IsSuccess']) {
         if (body['ErrorCode'] == 106) {
