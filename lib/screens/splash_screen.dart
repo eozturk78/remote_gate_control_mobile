@@ -146,8 +146,7 @@ class _SplashScreenState extends State<SplashScreen> {
     SharedPreferences pref = await SharedPreferences.getInstance();
     _deviceId = deviceId;
     apis
-        .sendOpenDoorRequest(locationData?.latitude, locationData?.longitude,
-            siteId, deviceId, isOpenedDoor, dist)
+        .sendOpenDoorRequest(0, 0, siteId, deviceId, isOpenedDoor, dist)
         .then((value) async {
       if (value['isPaymentRequired'] == 1) {
         //    pref.remove("token");
@@ -218,7 +217,8 @@ class _SplashScreenState extends State<SplashScreen> {
   Position? locationData;
   dynamic dist = 0;
   sendRequestToDevice(Device data) async {
-    setState(() {
+    sendToBackend(data);
+    /* setState(() {
       isSendRequestToDevice = true;
       stepStatusText = "Konum Alınıyor.";
     });
@@ -230,14 +230,14 @@ class _SplashScreenState extends State<SplashScreen> {
       dist = calculateDistance(
           locationData?.latitude, locationData?.longitude, data.lat, data.long);
     } catch (e) {
-      /*setState(() {
+      setState(() {
         isOpenGate = false;
         isSendRequest = false;
         isSendRequestToDevice = false;
         isLocationFailed = true;
-      });*/
+      });
       checkPermissionStatus(false);
-      //showMessagePage("Konum alınamadı");
+      showMessagePage("Konum alınamadı");
     }
 
     if (data.HexCode == null) {
@@ -253,7 +253,7 @@ class _SplashScreenState extends State<SplashScreen> {
           sendToBackend(data);
         }
       });
-    }
+    }*/
   }
 
   showMessagePage(String msg) {
