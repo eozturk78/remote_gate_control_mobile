@@ -21,6 +21,8 @@ class Site {
         Devices: json['Devices'] != null
             ? (json['Devices'] as List).map((i) => Device.fromJson(i)).toList()
             : [],
-        IsActiveDevice: (json['Devices'] as List).first['isSiteActive']);
+        IsActiveDevice: json['Devices'] != null
+            ? (json['Devices'] as List).first['isSiteActive']
+            : 0);
   }
 }

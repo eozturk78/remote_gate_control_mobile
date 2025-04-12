@@ -36,7 +36,6 @@ class _LoginState extends State<Login> {
   onLogin() async {
     SharedPreferences pref = await SharedPreferences.getInstance();
     await apis.login(email.text, password.text).then((value) {
-      print(value);
       pref.setBool('isSiteManager', value['isSiteManager'] == 1 ? true : false);
       pref.setString('token', value['token']);
       pref.setString('email', email.text);
@@ -118,8 +117,7 @@ class _LoginState extends State<Login> {
           children: [
             Image.asset(
               "assets/images/logo-big.PNG",
-              width: 300,
-              fit: BoxFit.cover,
+              height: 120,
             ),
             TextFormField(
               controller: email,

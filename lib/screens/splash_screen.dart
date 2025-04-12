@@ -8,7 +8,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:remote_gate_control_mobile/apis/apis.dart';
 import 'package:remote_gate_control_mobile/constants.dart';
@@ -18,6 +21,7 @@ import 'package:remote_gate_control_mobile/screens/payment_information.dart';
 import 'package:remote_gate_control_mobile/screens/profile.dart';
 import 'package:remote_gate_control_mobile/toast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:slide_to_act/slide_to_act.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 
@@ -34,7 +38,7 @@ class _SplashScreenState extends State<SplashScreen> {
   List<Site> dataList = [];
   bool isSendRequest = false;
   bool isSendRequestToDevice = false;
-  bool? isOpenGate;
+  bool? isOpenGate = false;
   bool isDevicePaymentRequired = false;
   bool? isDataExist;
   Timer? _timer;
@@ -46,10 +50,18 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
+
     checkInternet();
   }
 
+  String localVersion = "";
   checkInternet() async {
+    PackageInfo packageInfo = await PackageInfo.fromPlatform();
+
+    localVersion = packageInfo.version;
+
+    print(localVersion);
+
     SharedPreferences pref = await SharedPreferences.getInstance();
     if (pref.getBool("needAPayment") == true) {
       Navigator.pushReplacement(
@@ -141,12 +153,33 @@ class _SplashScreenState extends State<SplashScreen> {
     }
   }
 
-  saveLocation(String? siteId, String deviceId, bool isOpenedDoor) async {
+  Future<void> _playSound() async {
+    final player = AudioPlayer();
+    await player.setAsset('assets/images/success.mp3');
+    await player.play();
+  }
+
+  saveLocation(Device data, bool isOpenedDoor) async {
     Apis apis = Apis();
     SharedPreferences pref = await SharedPreferences.getInstance();
-    _deviceId = deviceId;
+    dynamic lat, long;
+    try {
+      locationData = await Geolocator.getCurrentPosition(
+        timeLimit: Duration(seconds: 10),
+        desiredAccuracy: LocationAccuracy.best,
+      );
+      lat = locationData?.latitude;
+      long = locationData?.longitude;
+      dist = calculateDistance(
+          locationData?.latitude, locationData?.longitude, data.lat, data.long);
+    } catch (e) {
+      lat = 0.0;
+      long = 0.0;
+    }
+
     apis
-        .sendOpenDoorRequest(0, 0, siteId, deviceId, isOpenedDoor, dist)
+        .sendOpenDoorRequest(
+            lat, long, data.SiteId, data.DeviceId, isOpenedDoor, dist)
         .then((value) async {
       if (value['isPaymentRequired'] == 1) {
         //    pref.remove("token");
@@ -160,7 +193,7 @@ class _SplashScreenState extends State<SplashScreen> {
       } else if (value['sites'] != null) {
         pref.setString('sites', jsonEncode(value['sites']));
         if (isOpenedDoor)
-          Future.delayed(Duration(seconds: 1), () {
+          Future.delayed(Duration(seconds: 15), () {
             SystemNavigator.pop();
             if (Platform.isIOS) exit(0);
           });
@@ -173,10 +206,13 @@ class _SplashScreenState extends State<SplashScreen> {
     });
   }
 
+  String version = "";
   getGateList() async {
     Apis apis = Apis();
     SharedPreferences pref = await SharedPreferences.getInstance();
     apis.getGateList().then((value) async {
+      pref.setBool('isSiteManager', value['isSiteManager'] == 1 ? true : false);
+      version = value['version'];
       if (value['isPaymentRequired'] == 1) {
         //    pref.remove("token");
         _timerGate.cancel();
@@ -215,45 +251,9 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Position? locationData;
-  dynamic dist = 0;
+  dynamic dist = 0.0;
   sendRequestToDevice(Device data) async {
     sendToBackend(data);
-    /* setState(() {
-      isSendRequestToDevice = true;
-      stepStatusText = "Konum Alınıyor.";
-    });
-    try {
-      locationData = await Geolocator.getCurrentPosition(
-        timeLimit: Duration(seconds: 10),
-        desiredAccuracy: LocationAccuracy.best,
-      );
-      dist = calculateDistance(
-          locationData?.latitude, locationData?.longitude, data.lat, data.long);
-    } catch (e) {
-      setState(() {
-        isOpenGate = false;
-        isSendRequest = false;
-        isSendRequestToDevice = false;
-        isLocationFailed = true;
-      });
-      checkPermissionStatus(false);
-      showMessagePage("Konum alınamadı");
-    }
-
-    if (data.HexCode == null) {
-      showMessagePage("Cihaz şuanda aktif değil");
-    } else if (data.remoteControl == false && dist > 201) {
-      showMessagePage("Cihazınıza uzaktasınız. ");
-    } else if (dist < 201) {
-      sendToBackend(data);
-    } else if (data.remoteControl == true) {
-      showDialog(context: context, builder: (context) => onOpenImage(context))
-          .then((value) {
-        if (value == 1) {
-          sendToBackend(data);
-        }
-      });
-    }*/
   }
 
   showMessagePage(String msg) {
@@ -265,7 +265,33 @@ class _SplashScreenState extends State<SplashScreen> {
     });
   }
 
+  showAdverdisement() {
+    _bannerAd = BannerAd(
+      adUnitId: Platform.isAndroid
+          ? 'ca-app-pub-3506128953915434/4612948259'
+          : 'ca-app-pub-3506128953915434/9991427706', // gerçek reklam ID ile değiştir
+      size: AdSize.banner,
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (_) {
+          setState(() {
+            _isAdLoaded = true;
+          });
+          print(_);
+        },
+        onAdFailedToLoad: (ad, error) {
+          print(error);
+          ad.dispose();
+        },
+      ),
+    )..load();
+
+    _bannerAd.load();
+  }
+
   bool isSendAgain = true;
+  late BannerAd _bannerAd;
+  bool _isAdLoaded = false;
   sendToBackend(Device data) async {
     setState(() {
       isSendRequestToDevice = true;
@@ -276,7 +302,8 @@ class _SplashScreenState extends State<SplashScreen> {
       await apis
           .sendRequestTeltonika(data.SerialNumber, data.HexCode!)
           .then((value) {
-        saveLocation(data.SiteId, data.DeviceId, true);
+        saveLocation(data, true);
+        showAdverdisement();
         setState(() {
           isOpenGate = true;
           isSendRequest = true;
@@ -285,7 +312,7 @@ class _SplashScreenState extends State<SplashScreen> {
         });
       }).timeout(Duration(seconds: 2));
     } on TimeoutException catch (_) {
-      saveLocation(data.SiteId, data.DeviceId, false);
+      saveLocation(data, true);
       setState(() {
         isOpenGate = false;
         isSendRequest = true;
@@ -409,7 +436,7 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-          title: const Text('AE Smart Systems'),
+          title: const Text('Kapılarım'),
           backgroundColor: kPrimaryColor,
           centerTitle: false,
           automaticallyImplyLeading: false,
@@ -435,7 +462,12 @@ class _SplashScreenState extends State<SplashScreen> {
             Padding(
               padding: EdgeInsets.all(25),
               child: Column(
-                children: [Image.asset("assets/images/logo-big.PNG")],
+                children: [
+                  Image.asset(
+                    "assets/images/logo-big.PNG",
+                    height: 120,
+                  )
+                ],
               ),
             ),
             if (!isConnected)
@@ -446,82 +478,6 @@ class _SplashScreenState extends State<SplashScreen> {
                     "Uygulamak kullanmak için internet bağlantısına ihtiyacınız var",
                     style: TextStyle(fontSize: 18),
                   ),
-                ),
-              ),
-            if (isLocationFailed)
-              Padding(
-                padding: EdgeInsets.all(10),
-                child: Column(
-                  children: [
-                    Text("Konumunuz alınamadı"),
-                    if (isPermissionDenied)
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(40),
-                          backgroundColor: Colors.red,
-                        ),
-                        onPressed: () => checkPermissionStatus(true),
-                        child: Ink(
-                          decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20)),
-                          child: Container(
-                            width: 200,
-                            alignment: Alignment.center,
-                            child: Text(
-                              'Konum izni veriniz.',
-                              style: TextStyle(
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(40),
-                          backgroundColor:
-                              kPrimaryColor // fromHeight use double.infinity as width and 40 is the height
-                          ),
-                      onPressed: () {
-                        _timer?.cancel();
-                        setState(() {
-                          isSendRequest = false;
-                          isSendRequestToDevice = true;
-                          isLocationFailed = false;
-                        });
-                        sendRequestToDevice(_data.Devices[0]);
-                      },
-                      child: const Text("Tekrar istek gönder"),
-                    ),
-                    if (isDataExist == true)
-                      ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(40),
-                            backgroundColor: kPrimaryColor,
-                          ),
-                          onPressed: () {
-                            _timer?.cancel();
-                            setState(() {
-                              isSendRequest = false;
-                              isLocationFailed = false;
-                            });
-                          },
-                          child: const Text("Listeye dön")),
-                    SizedBox(
-                      height: 40,
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(40),
-                        backgroundColor: Colors.grey,
-                      ),
-                      onPressed: () {
-                        SystemNavigator.pop();
-                        if (Platform.isIOS) exit(0);
-                      },
-                      child: const Text("Uygulamayı Kapat"),
-                    ),
-                  ],
                 ),
               ),
             if (isSendRequestToDevice)
@@ -554,43 +510,55 @@ class _SplashScreenState extends State<SplashScreen> {
                                 shrinkWrap: true,
                                 itemCount: dataList[index].Devices.length,
                                 itemBuilder: (BuildContext context, int j) {
-                                  return Container(
-                                    margin: new EdgeInsets.only(bottom: 5),
-                                    child: ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        minimumSize: const Size.fromHeight(60),
-                                        backgroundColor: dataList[index]
-                                                    .Devices[j]
-                                                    .isSiteActive! ==
-                                                1
-                                            ? kPrimaryColor
-                                            : const Color.fromARGB(
-                                                179, 158, 158, 158),
-                                      ),
-                                      onPressed: () {
-                                        _timer?.cancel();
-                                        _data = dataList[index];
-                                        sendRequestToDevice(
-                                            dataList[index].Devices[j]);
-                                      },
-                                      child: Column(
-                                        children: [
-                                          Text(
-                                            dataList[index].Devices[j].Name,
-                                          ),
+                                  return Column(
+                                    children: [
+                                      SlideAction(
+                                        text: dataList[index].Devices[j].Name,
+                                        textStyle: const TextStyle(
+                                            fontSize: 15, color: Colors.white),
+                                        onSubmit: () {
+                                          _playSound();
                                           if (dataList[index]
                                                   .Devices[j]
                                                   .isSiteActive ==
-                                              0)
-                                            Text(
-                                              "Bu kapı aktif değil",
-                                              style: TextStyle(
-                                                  fontSize: 10,
-                                                  color: Colors.red),
-                                            )
-                                        ],
+                                              1) {
+                                            _timer?.cancel();
+                                            _data = dataList[index];
+                                            setState(() {
+                                              isSendRequest = false;
+                                              isSendRequestToDevice = true;
+                                              isLocationFailed = false;
+                                            });
+                                            sendRequestToDevice(
+                                                _data.Devices[0]);
+                                          }
+                                        },
+                                        elevation: 2,
+                                        borderRadius: 12,
+                                        innerColor: Colors.white,
+                                        outerColor: dataList[index]
+                                                    .Devices[j]
+                                                    .isSiteActive ==
+                                                1
+                                            ? kPrimaryColor
+                                            : Color.fromARGB(255, 73, 3, 15),
+                                        sliderButtonIcon: dataList[index]
+                                                    .Devices[j]
+                                                    .isSiteActive ==
+                                                1
+                                            ? const Icon(Icons.arrow_forward)
+                                            : const Icon(Icons.close),
+                                        submittedIcon: const Icon(
+                                          Icons.check,
+                                          color: Color.fromARGB(
+                                              255, 207, 204, 204),
+                                        ),
+                                        sliderRotate: false,
                                       ),
-                                    ),
+                                      const SizedBox(
+                                        height: 4,
+                                      ),
+                                    ],
                                   );
                                 },
                               ),
@@ -609,12 +577,12 @@ class _SplashScreenState extends State<SplashScreen> {
                       if (isOpenGate == true)
                         Column(
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.check_circle,
                               size: 100.0,
                               color: Colors.green,
                             ),
-                            Text(
+                            const Text(
                               "Kapı açma sinyali gönderildi.",
                               style: TextStyle(
                                   color: Colors.green,
@@ -626,7 +594,7 @@ class _SplashScreenState extends State<SplashScreen> {
                                 padding: EdgeInsets.all(10),
                                 child: Column(
                                   children: [
-                                    Text(
+                                    const Text(
                                       "Hizmetinizin aksamaması için kapınızda bağlı bulunan sim kartınızın yıllık veri iletim ücretinin ödenmesi gerekmektedir. Lütfen konu ile ilgili site yöneticinize başvurun",
                                       style: TextStyle(
                                           color: Colors.red, fontSize: 15),
@@ -652,7 +620,7 @@ class _SplashScreenState extends State<SplashScreen> {
                                           },
                                           child: const Text("Daha Fazla Bilgi"),
                                         ),
-                                        Spacer(),
+                                        const Spacer(),
                                         ElevatedButton(
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: Colors.grey,
@@ -672,12 +640,12 @@ class _SplashScreenState extends State<SplashScreen> {
                       else
                         Column(
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.remove_circle_outline_sharp,
                               size: 100.0,
                               color: Colors.red,
                             ),
-                            Text(
+                            const Text(
                               "Kapı açılamadı.",
                               style: TextStyle(
                                   color: Colors.red,
@@ -702,6 +670,28 @@ class _SplashScreenState extends State<SplashScreen> {
                       const SizedBox(
                         height: 50,
                       ),
+                      if (version != localVersion)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                                "Hizmetlerimizden yararlanmak için lütfen yeni versiyonumuzu indirin."),
+                            ElevatedButton(
+                                onPressed: () async {
+                                  if (Platform.isIOS) {
+                                    const url =
+                                        'https://apps.apple.com/us/app/ae-smart-systems/id6446314960'; //Twitter's URL
+                                    await launch(url);
+                                  } else {
+                                    const url =
+                                        'https://play.google.com/store/apps/details?id=com.mobile.remote_gate_control_mobile'; //Twitter's URL
+                                    await launch(url);
+                                  }
+                                },
+                                child: Text("Hemen İndir"))
+                          ],
+                        ),
                     ],
                   ),
                 ),
@@ -717,6 +707,12 @@ class _SplashScreenState extends State<SplashScreen> {
                 },
                 child: const Text(
                     'Hizmetlerimiz hakkında bilgi almak için tıklayın'),
+              ),
+            if (_isAdLoaded)
+              Container(
+                height: _bannerAd.size.height.toDouble(),
+                width: _bannerAd.size.width.toDouble(),
+                child: AdWidget(ad: _bannerAd),
               ),
           ],
         ),
