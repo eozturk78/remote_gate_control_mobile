@@ -60,8 +60,6 @@ class _SplashScreenState extends State<SplashScreen> {
 
     localVersion = packageInfo.version;
 
-    print(localVersion);
-
     SharedPreferences pref = await SharedPreferences.getInstance();
     if (pref.getBool("needAPayment") == true) {
       Navigator.pushReplacement(
@@ -303,16 +301,16 @@ class _SplashScreenState extends State<SplashScreen> {
           .sendRequestTeltonika(data.SerialNumber, data.HexCode!)
           .then((value) {
         saveLocation(data, true);
-        showAdverdisement();
+        //  showAdverdisement();
         setState(() {
           isOpenGate = true;
           isSendRequest = true;
           isSendRequestToDevice = false;
           isLocationFailed = false;
         });
-      }).timeout(Duration(seconds: 2));
+      }).timeout(Duration(seconds: 5));
     } on TimeoutException catch (_) {
-      saveLocation(data, true);
+      saveLocation(data, false);
       setState(() {
         isOpenGate = false;
         isSendRequest = true;
@@ -470,6 +468,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 ],
               ),
             ),
+            Text("Mevcut v =" + localVersion),
             if (!isConnected)
               const Padding(
                 padding: EdgeInsets.all(10),
