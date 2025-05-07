@@ -13,13 +13,13 @@ import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:remote_gate_control_mobile/apis/apis.dart';
-import 'package:remote_gate_control_mobile/constants.dart';
-import 'package:remote_gate_control_mobile/screens/device_payment_information.dart';
-import 'package:remote_gate_control_mobile/screens/login.dart';
-import 'package:remote_gate_control_mobile/screens/payment_information.dart';
-import 'package:remote_gate_control_mobile/screens/profile.dart';
-import 'package:remote_gate_control_mobile/toast.dart';
+import 'package:pultix_mobile/apis/apis.dart';
+import 'package:pultix_mobile/constants.dart';
+import 'package:pultix_mobile/screens/device_payment_information.dart';
+import 'package:pultix_mobile/screens/login.dart';
+import 'package:pultix_mobile/screens/payment_information.dart';
+import 'package:pultix_mobile/screens/profile.dart';
+import 'package:pultix_mobile/toast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slide_to_act/slide_to_act.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -61,32 +61,45 @@ class _SplashScreenState extends State<SplashScreen> {
     localVersion = packageInfo.version;
 
     SharedPreferences pref = await SharedPreferences.getInstance();
-    if (pref.getBool("needAPayment") == true) {
+
+    print("================");
+    print(pref.getString("token"));
+
+    if (pref.getString("token") == null ||
+        pref.getString("token") == 'null' ||
+        pref.getString("token") == "") {
+      print("================");
       Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-              builder: (context) => const PaymentInformationScreen()));
-    }
-    bool result = await InternetConnectionChecker().hasConnection;
-    isConnected = result;
-    setState(() {});
-    needAPayment = false;
-    if (isConnected) {
-      navigateUser();
-    }
-    _listener = InternetConnectionChecker()
-        .onStatusChange
-        .listen((InternetConnectionStatus status) {
-      if (!isConnected) {
-        if (status == InternetConnectionStatus.connected) {
-          isConnected = true;
+          context, MaterialPageRoute(builder: (context) => const Login(null)));
+    } else {
+      if (pref.getBool("needAPayment") == true) {
+        Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (context) => const PaymentInformationScreen()));
+      } else {
+        bool result = await InternetConnectionChecker().hasConnection;
+        isConnected = result;
+        setState(() {});
+        needAPayment = false;
+        if (isConnected) {
           navigateUser();
-        } else {
-          isConnected = false;
         }
+        _listener = InternetConnectionChecker()
+            .onStatusChange
+            .listen((InternetConnectionStatus status) {
+          if (!isConnected) {
+            if (status == InternetConnectionStatus.connected) {
+              isConnected = true;
+              navigateUser();
+            } else {
+              isConnected = false;
+            }
+          }
+          setState(() {});
+        });
       }
-      setState(() {});
-    });
+    }
   }
 
   late final StreamSubscription<InternetConnectionStatus> _listener;
@@ -462,13 +475,11 @@ class _SplashScreenState extends State<SplashScreen> {
               child: Column(
                 children: [
                   Image.asset(
-                    "assets/images/logo-big.PNG",
-                    height: 120,
+                    "assets/images/app-logo.png",
                   )
                 ],
               ),
             ),
-            Text("Mevcut v =" + localVersion),
             if (!isConnected)
               const Padding(
                 padding: EdgeInsets.all(10),
@@ -669,7 +680,7 @@ class _SplashScreenState extends State<SplashScreen> {
                       const SizedBox(
                         height: 50,
                       ),
-                      if (version != localVersion)
+                     /* if (version != localVersion)
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -684,13 +695,13 @@ class _SplashScreenState extends State<SplashScreen> {
                                     await launch(url);
                                   } else {
                                     const url =
-                                        'https://play.google.com/store/apps/details?id=com.mobile.remote_gate_control_mobile'; //Twitter's URL
+                                        'https://play.google.com/store/apps/details?id=com.mobile.pultix_mobile'; //Twitter's URL
                                     await launch(url);
                                   }
                                 },
                                 child: Text("Hemen İndir"))
                           ],
-                        ),
+                        ),*/
                     ],
                   ),
                 ),
@@ -725,6 +736,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   MaterialPageRoute(
                       builder: ((context) => const ProfileScreen(null))))
               .then((value) {
+            if (_timer != null) _timer?.cancel();
             navigateUser();
           });
         },

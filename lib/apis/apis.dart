@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:remote_gate_control_mobile/toast.dart';
+import 'package:pultix_mobile/toast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Apis {
@@ -254,7 +254,6 @@ class Apis {
       'expireDuration': int.parse(durationDay!),
       'isOneTimeUsedToken': isOneTimeUsedToken
     };
-    print(pref.getString('token').toString());
     var result = await http
         .post(Uri.parse(finalUrl), body: jsonEncode(params), headers: {
       'Content-Type': 'application/json',

@@ -3,12 +3,12 @@ import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:remote_gate_control_mobile/apis/apis.dart';
-import 'package:remote_gate_control_mobile/screens/forgot_password.dart';
-import 'package:remote_gate_control_mobile/screens/main.dart';
-import 'package:remote_gate_control_mobile/screens/payment_information.dart';
-import 'package:remote_gate_control_mobile/screens/splash_screen.dart';
-import 'package:remote_gate_control_mobile/toast.dart';
+import 'package:pultix_mobile/apis/apis.dart';
+import 'package:pultix_mobile/screens/forgot_password.dart';
+import 'package:pultix_mobile/screens/main.dart';
+import 'package:pultix_mobile/screens/payment_information.dart';
+import 'package:pultix_mobile/screens/splash_screen.dart';
+import 'package:pultix_mobile/toast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import 'package:geolocator/geolocator.dart';
@@ -115,10 +115,7 @@ class _LoginState extends State<Login> {
         padding: EdgeInsets.all(15),
         child: Column(
           children: [
-            Image.asset(
-              "assets/images/logo-big.PNG",
-              height: 120,
-            ),
+            Image.asset("assets/images/app-logo.png"),
             TextFormField(
               controller: email,
               obscureText: false,

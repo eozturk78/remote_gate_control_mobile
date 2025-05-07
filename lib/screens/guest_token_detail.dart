@@ -1,9 +1,9 @@
 import 'package:dropdown_search2/dropdown_search2.dart';
 import 'package:flutter/material.dart';
-import 'package:remote_gate_control_mobile/apis/apis.dart';
-import 'package:remote_gate_control_mobile/models/device.dart';
-import 'package:remote_gate_control_mobile/models/guest_token_detail.dart';
-import 'package:remote_gate_control_mobile/models/site.dart';
+import 'package:pultix_mobile/apis/apis.dart';
+import 'package:pultix_mobile/models/device.dart';
+import 'package:pultix_mobile/models/guest_token_detail.dart';
+import 'package:pultix_mobile/models/site.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants.dart';
