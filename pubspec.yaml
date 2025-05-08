@@ -1,4 +1,4 @@
-name: pultix_mobile
+name: remote_gate_control_mobile
 description: A new Flutter project.
 
 # The following line prevents the package from being accidentally published to
@@ -49,7 +49,6 @@ dependencies:
   dropdown_search2: any  
   just_audio: ^0.9.46
   slide_to_act: ^2.0.0
-  google_mobile_ads: ^4.0.0
   flutter_swipe_button: ^2.1.3
   package_info_plus: ^8.3.0
 

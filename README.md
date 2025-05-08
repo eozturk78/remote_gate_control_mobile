@@ -1,4 +1,4 @@
-# pultix_mobile
+# remote_gate_control_mobile
 
 A new Flutter project.
 

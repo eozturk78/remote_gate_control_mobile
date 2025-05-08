@@ -1,4 +1,4 @@
-package com.mobile.pultix_mobile
+package com.mobile.remote_gate_control_mobile
 
 import io.flutter.embedding.android.FlutterActivity
 

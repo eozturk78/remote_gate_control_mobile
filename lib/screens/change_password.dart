@@ -2,9 +2,9 @@ import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:pultix_mobile/apis/apis.dart';
-import 'package:pultix_mobile/screens/forgot_password.dart';
-import 'package:pultix_mobile/screens/main.dart';
+import 'package:remote_gate_control_mobile/apis/apis.dart';
+import 'package:remote_gate_control_mobile/screens/forgot_password.dart';
+import 'package:remote_gate_control_mobile/screens/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants.dart';

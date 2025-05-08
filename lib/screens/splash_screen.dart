@@ -8,18 +8,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:pultix_mobile/apis/apis.dart';
-import 'package:pultix_mobile/constants.dart';
-import 'package:pultix_mobile/screens/device_payment_information.dart';
-import 'package:pultix_mobile/screens/login.dart';
-import 'package:pultix_mobile/screens/payment_information.dart';
-import 'package:pultix_mobile/screens/profile.dart';
-import 'package:pultix_mobile/toast.dart';
+import 'package:remote_gate_control_mobile/apis/apis.dart';
+import 'package:remote_gate_control_mobile/constants.dart';
+import 'package:remote_gate_control_mobile/screens/device_payment_information.dart';
+import 'package:remote_gate_control_mobile/screens/login.dart';
+import 'package:remote_gate_control_mobile/screens/payment_information.dart';
+import 'package:remote_gate_control_mobile/screens/profile.dart';
+import 'package:remote_gate_control_mobile/toast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slide_to_act/slide_to_act.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -204,7 +203,7 @@ class _SplashScreenState extends State<SplashScreen> {
       } else if (value['sites'] != null) {
         pref.setString('sites', jsonEncode(value['sites']));
         if (isOpenedDoor)
-          Future.delayed(Duration(seconds: 15), () {
+          Future.delayed(Duration(seconds: 2), () {
             SystemNavigator.pop();
             if (Platform.isIOS) exit(0);
           });
@@ -276,7 +275,7 @@ class _SplashScreenState extends State<SplashScreen> {
     });
   }
 
-  showAdverdisement() {
+  /* showAdverdisement() {
     _bannerAd = BannerAd(
       adUnitId: Platform.isAndroid
           ? 'ca-app-pub-3506128953915434/4612948259'
@@ -298,10 +297,10 @@ class _SplashScreenState extends State<SplashScreen> {
     )..load();
 
     _bannerAd.load();
-  }
+  }*/
 
   bool isSendAgain = true;
-  late BannerAd _bannerAd;
+  // late BannerAd _bannerAd;
   bool _isAdLoaded = false;
   sendToBackend(Device data) async {
     setState(() {
@@ -680,7 +679,7 @@ class _SplashScreenState extends State<SplashScreen> {
                       const SizedBox(
                         height: 50,
                       ),
-                     /* if (version != localVersion)
+                      /* if (version != localVersion)
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -695,7 +694,7 @@ class _SplashScreenState extends State<SplashScreen> {
                                     await launch(url);
                                   } else {
                                     const url =
-                                        'https://play.google.com/store/apps/details?id=com.mobile.pultix_mobile'; //Twitter's URL
+                                        'https://play.google.com/store/apps/details?id=com.mobile.remote_gate_control_mobile'; //Twitter's URL
                                     await launch(url);
                                   }
                                 },
@@ -718,12 +717,12 @@ class _SplashScreenState extends State<SplashScreen> {
                 child: const Text(
                     'Hizmetlerimiz hakkında bilgi almak için tıklayın'),
               ),
-            if (_isAdLoaded)
+            /* if (_isAdLoaded)
               Container(
                 height: _bannerAd.size.height.toDouble(),
                 width: _bannerAd.size.width.toDouble(),
                 child: AdWidget(ad: _bannerAd),
-              ),
+              ),*/
           ],
         ),
       ),

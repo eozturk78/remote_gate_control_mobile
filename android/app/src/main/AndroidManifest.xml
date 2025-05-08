@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.mobile.pultix_mobile">
+    package="com.mobile.remote_gate_control_mobile">
     <uses-feature android:name="android.hardware.wifi" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
@@ -14,11 +14,6 @@
         android:label="Pultix"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
-        
-        
-        <meta-data
-            android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3506128953915434~5865013268"/>
         
         <meta-data 
             android:name="io.flutter.embedding.android.DisableSurfaceControl" 

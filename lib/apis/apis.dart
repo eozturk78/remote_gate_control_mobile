@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:pultix_mobile/toast.dart';
+import 'package:remote_gate_control_mobile/toast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Apis {
