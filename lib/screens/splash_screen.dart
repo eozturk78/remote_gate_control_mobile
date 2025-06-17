@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -26,6 +27,9 @@ import 'dart:io';
 
 import '../models/device.dart';
 import '../models/site.dart';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:remote_gate_control_mobile/firebase_options.dart'; // flutterfire CLI ile oluşturulacak
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
@@ -56,18 +60,11 @@ class _SplashScreenState extends State<SplashScreen> {
   String localVersion = "";
   checkInternet() async {
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
-
     localVersion = packageInfo.version;
-
     SharedPreferences pref = await SharedPreferences.getInstance();
-
-    print("================");
-    print(pref.getString("token"));
-
     if (pref.getString("token") == null ||
         pref.getString("token") == 'null' ||
         pref.getString("token") == "") {
-      print("================");
       Navigator.pushReplacement(
           context, MaterialPageRoute(builder: (context) => const Login(null)));
     } else {
@@ -170,8 +167,33 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   saveLocation(Device data, bool isOpenedDoor) async {
-    Apis apis = Apis();
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+    NotificationSettings settings = await messaging.requestPermission(
+      alert: true,
+      announcement: false,
+      badge: true,
+      carPlay: false,
+      criticalAlert: false,
+      provisional: false,
+      sound: true,
+    );
+
     SharedPreferences pref = await SharedPreferences.getInstance();
+
+    String? token;
+    if (pref.getString("deviceToken") == null ||
+        pref.getString("deviceToken") == "") {
+      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+        token = await FirebaseMessaging.instance.getToken();
+        if (token != null) pref.setString("deviceToken", token);
+      } else {
+        print('❌ User declined or has not accepted permission');
+      }
+    } else {
+      token = pref.getString("deviceToken");
+    }
+
+    Apis apis = Apis();
     dynamic lat, long;
     try {
       locationData = await Geolocator.getCurrentPosition(
@@ -187,9 +209,11 @@ class _SplashScreenState extends State<SplashScreen> {
       long = 0.0;
     }
 
+    print(token);
+
     apis
         .sendOpenDoorRequest(
-            lat, long, data.SiteId, data.DeviceId, isOpenedDoor, dist)
+            lat, long, data.SiteId, data.DeviceId, isOpenedDoor, dist, token)
         .then((value) async {
       if (value['isPaymentRequired'] == 1) {
         //    pref.remove("token");
@@ -521,49 +545,135 @@ class _SplashScreenState extends State<SplashScreen> {
                                 itemBuilder: (BuildContext context, int j) {
                                   return Column(
                                     children: [
-                                      SlideAction(
-                                        text: dataList[index].Devices[j].Name,
-                                        textStyle: const TextStyle(
-                                            fontSize: 15, color: Colors.white),
-                                        onSubmit: () {
-                                          _playSound();
-                                          if (dataList[index]
-                                                  .Devices[j]
-                                                  .isSiteActive ==
-                                              1) {
-                                            _timer?.cancel();
-                                            _data = dataList[index];
-                                            setState(() {
-                                              isSendRequest = false;
-                                              isSendRequestToDevice = true;
-                                              isLocationFailed = false;
-                                            });
-                                            sendRequestToDevice(
-                                                _data.Devices[0]);
-                                          }
-                                        },
-                                        elevation: 2,
-                                        borderRadius: 12,
-                                        innerColor: Colors.white,
-                                        outerColor: dataList[index]
-                                                    .Devices[j]
-                                                    .isSiteActive ==
-                                                1
-                                            ? kPrimaryColor
-                                            : Color.fromARGB(255, 73, 3, 15),
-                                        sliderButtonIcon: dataList[index]
-                                                    .Devices[j]
-                                                    .isSiteActive ==
-                                                1
-                                            ? const Icon(Icons.arrow_forward)
-                                            : const Icon(Icons.close),
-                                        submittedIcon: const Icon(
-                                          Icons.check,
-                                          color: Color.fromARGB(
-                                              255, 207, 204, 204),
-                                        ),
-                                        sliderRotate: false,
-                                      ),
+                                      dataList[index].Devices[j].isSiteActive ==
+                                              1
+                                          ? SlideAction(
+                                              // ignore: sort_child_properties_last
+                                              child: Container(
+                                                margin:
+                                                    EdgeInsets.only(left: 90),
+                                                child: Align(
+                                                  alignment:
+                                                      Alignment.centerLeft,
+                                                  child: Text(
+                                                    dataList[index]
+                                                        .Devices[j]
+                                                        .Name,
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 15,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              onSubmit: () {
+                                                _playSound();
+                                                _timer?.cancel();
+                                                _data = dataList[index];
+                                                setState(() {
+                                                  isSendRequest = false;
+                                                  isSendRequestToDevice = true;
+                                                  isLocationFailed = false;
+                                                });
+                                                sendRequestToDevice(
+                                                    _data.Devices[0]);
+                                              },
+                                              elevation: 2,
+                                              borderRadius: 12,
+                                              innerColor: Colors.white,
+                                              outerColor: dataList[index]
+                                                          .Devices[j]
+                                                          .isSiteActive ==
+                                                      1
+                                                  ? kPrimaryColor
+                                                  : Color.fromARGB(
+                                                      255, 73, 3, 15),
+                                              sliderButtonIcon: dataList[index]
+                                                          .Devices[j]
+                                                          .isSiteActive ==
+                                                      1
+                                                  ? const Icon(
+                                                      Icons.arrow_forward)
+                                                  : const Icon(Icons.power_off),
+                                              submittedIcon: const Icon(
+                                                Icons.check,
+                                                color: Color.fromARGB(
+                                                    255, 207, 204, 204),
+                                              ),
+                                              sliderRotate: false,
+                                              alignment: Alignment.centerLeft,
+                                            )
+                                          : Container(
+                                              decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                color: Color.fromARGB(
+                                                    255, 73, 3, 15),
+                                              ),
+                                              height: 70,
+                                              width: MediaQuery.of(context)
+                                                  .size
+                                                  .width,
+                                              child: Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Row(
+                                                    children: [
+                                                      Container(
+                                                        margin: const EdgeInsets
+                                                            .only(left: 8),
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(12),
+                                                          color: Colors.white,
+                                                        ),
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(15),
+                                                        child: Icon(
+                                                          Icons.power_off,
+                                                          color: Colors.black,
+                                                        ),
+                                                      ),
+                                                      Container(
+                                                        margin: EdgeInsets.only(
+                                                            left: 25),
+                                                        child: Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            Text(
+                                                              dataList[index]
+                                                                  .Devices[j]
+                                                                  .Name,
+                                                              style:
+                                                                  const TextStyle(
+                                                                fontSize: 15,
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
+                                                            ),
+                                                            Text(
+                                                              "Elektrik kesintisi",
+                                                              style:
+                                                                  const TextStyle(
+                                                                fontSize: 12,
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      )
+                                                    ],
+                                                  )
+                                                ],
+                                              ),
+                                            ),
                                       const SizedBox(
                                         height: 4,
                                       ),

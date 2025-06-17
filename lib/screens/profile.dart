@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:remote_gate_control_mobile/apis/apis.dart';
+import 'package:remote_gate_control_mobile/screens/app_settings.dart';
 import 'package:remote_gate_control_mobile/screens/delete_my_account.dart';
 import 'package:remote_gate_control_mobile/screens/login.dart';
 import 'package:remote_gate_control_mobile/screens/site_list.dart';
@@ -87,12 +88,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     },
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
                           Icons.person,
                           size: 24,
                         ),
+                        SizedBox(width: 10),
                         Text("Kullanıcıları Yönet")
                       ],
                     ),
@@ -105,12 +106,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Center(
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(
+                          Icons.settings,
+                          size: 24,
+                        ),
+                        SizedBox(width: 10),
+                        Text("Uygulama Ayarları"),
+                      ],
+                    ),
+                  ),
+                  onPressed: () async {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AppSettingsScreen(null),
+                      ),
+                    );
+                  },
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(40),
+                    backgroundColor: kPrimaryColor,
+                  ),
+                  child: Center(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: const [
                         Icon(
                           Icons.password_outlined,
                           size: 24,
                         ),
+                        SizedBox(width: 10),
                         Text("Şifremi Değiştir"),
                       ],
                     ),
@@ -135,12 +163,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Center(
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: const [
                         Icon(
                           Icons.lock,
                           size: 24,
                         ),
+                        SizedBox(width: 10),
                         Text("Oturumu Kapat"),
                       ],
                     ),

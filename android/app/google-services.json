@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "229895546002",
+    "project_id": "remotegatecontroller-82180",
+    "storage_bucket": "remotegatecontroller-82180.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:229895546002:android:2aa833c5c4c9485fb4f24b",
+        "android_client_info": {
+          "package_name": "com.mobile.remote_gate_control_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDTLhGJA6AnOiJJSZXPuhHfnVAiQnP8dgM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

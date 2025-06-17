@@ -67,8 +67,14 @@ class Apis {
     }
   }
 
-  Future sendOpenDoorRequest(double? lat, double? long, String? siteId,
-      String? deviceId, bool? isGateOpened, double dist) async {
+  Future sendOpenDoorRequest(
+      double? lat,
+      double? long,
+      String? siteId,
+      String? deviceId,
+      bool? isGateOpened,
+      double dist,
+      String? deviceToken) async {
     SharedPreferences pref = await SharedPreferences.getInstance();
     String finalUrl = '$baseUrl/$serviceName/SendOpenGateRequest';
     var params = {
@@ -77,7 +83,8 @@ class Apis {
       'SiteId': siteId,
       'DeviceId': deviceId,
       'IsOpenedGate': isGateOpened,
-      'Distance': dist
+      'Distance': dist,
+      'DeviceToken': deviceToken
     };
     var result = await http
         .post(Uri.parse(finalUrl), body: jsonEncode(params), headers: {
@@ -580,6 +587,37 @@ class Apis {
     });
     var body = jsonDecode(result.body);
 
+    if (result.statusCode == 200) {
+      if (!body['IsSuccess']) {
+        if (body['ErrorCode'] == 106) {
+          pref.clear();
+          showToast(body['ErrorMessage']);
+          throw TimeoutException(body['ErrorMessage']);
+        } else {
+          throw Exception(body['ErrorMessage']);
+        }
+      }
+      return body['Response'];
+    } else {
+      // showToast("something went wrong");
+      throw Exception("Something went wrong");
+    }
+  }
+
+  Future updateNotificationState(bool notificationState) async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
+
+    var state = notificationState == true ? 1 : 0;
+    String finalUrl =
+        '$baseUrl/$serviceName/UpdateNotificationState?notificationState=$state';
+    print(finalUrl);
+    var result = await http.get(Uri.parse(finalUrl), headers: {
+      'Content-Type': 'application/json',
+      'token': pref.getString('token').toString(),
+      'lang': lang
+    });
+    print(result.body);
+    var body = jsonDecode(result.body);
     if (result.statusCode == 200) {
       if (!body['IsSuccess']) {
         if (body['ErrorCode'] == 106) {

@@ -1,5 +1,7 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:remote_gate_control_mobile/firebase_options.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/splash_screen.dart';
@@ -10,6 +12,10 @@ void main() async {
   // await MobileAds.instance.initialize(); // ÖNEMLİ
   //MobileAds.instance.updateRequestConfiguration(RequestConfiguration(
   //  testDeviceIds: ['38400000-8cf0-11bd-b23e-10b96e40000d']));
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp(null));
 }
 

@@ -61,6 +61,11 @@
 	<string>Kapıya olan mesafenizi anlayabilmemiz için, konum izninizi almamız gerekiyor. Konum izni vermediğiniz takdirde kapıyı açamazsınız.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Kapıya olan mesafenizi anlayabilmemiz için, konum izninizi almamız gerekiyor. Konum izni vermediğiniz takdirde kapıyı açamazsınız.</string>
-
+	<key>FirebaseAppDelegateProxyEnabled</key>
+	<false/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>

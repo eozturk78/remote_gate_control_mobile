@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -71,6 +72,34 @@ class _LoginState extends State<Login> {
         setState(() {});
       }
     }
+
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+    NotificationSettings settings = await messaging.requestPermission(
+      alert: true,
+      announcement: false,
+      badge: true,
+      carPlay: false,
+      criticalAlert: false,
+      provisional: false,
+      sound: true,
+    );
+
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      getFCMToken();
+    } else {
+      print('❌ User declined or has not accepted permission');
+    }
+  }
+
+  Future<void> getFCMToken() async {
+    String? token = await FirebaseMessaging.instance.getToken();
+
+    if (token != null) {
+      SharedPreferences pref = await SharedPreferences.getInstance();
+      pref.setString("deviceToken", token);
+    }
+    // You can send this token to your backend (Node.js) to send push notifications
   }
 
   Timer? _timer;
