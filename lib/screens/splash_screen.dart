@@ -50,6 +50,7 @@ class _SplashScreenState extends State<SplashScreen> {
   var _data = null;
   bool isConnected = true;
   bool needAPayment = true;
+  bool closeAppAfterOpenGate = true;
   @override
   void initState() {
     super.initState();
@@ -226,7 +227,10 @@ class _SplashScreenState extends State<SplashScreen> {
         setState(() {});
       } else if (value['sites'] != null) {
         pref.setString('sites', jsonEncode(value['sites']));
-        if (isOpenedDoor)
+        closeAppAfterOpenGate = pref.getBool("closeAppAfterOpenGate") ?? true;
+        setState(() {});
+
+        if (isOpenedDoor && closeAppAfterOpenGate == true)
           Future.delayed(Duration(seconds: 2), () {
             SystemNavigator.pop();
             if (Platform.isIOS) exit(0);
@@ -658,7 +662,7 @@ class _SplashScreenState extends State<SplashScreen> {
                                                               ),
                                                             ),
                                                             Text(
-                                                              "Elektrik kesintisi",
+                                                              "Cihazda enerji yok.",
                                                               style:
                                                                   const TextStyle(
                                                                 fontSize: 12,
@@ -708,6 +712,20 @@ class _SplashScreenState extends State<SplashScreen> {
                                   fontSize: 15,
                                   fontWeight: FontWeight.bold),
                             ),
+                            if (closeAppAfterOpenGate == false)
+                              ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    minimumSize: const Size.fromHeight(40),
+                                    backgroundColor: kPrimaryColor,
+                                  ),
+                                  onPressed: () {
+                                    _timer?.cancel();
+                                    setState(() {
+                                      isSendRequest = false;
+                                      isLocationFailed = false;
+                                    });
+                                  },
+                                  child: const Text("Listeye dön")),
                             if (isDevicePaymentRequired! == true)
                               Padding(
                                 padding: EdgeInsets.all(10),
