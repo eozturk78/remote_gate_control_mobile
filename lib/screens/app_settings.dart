@@ -53,7 +53,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
   Widget build(BuildContext contect) {
     return Scaffold(
         appBar: AppBar(
-          title: Text("Uygılama Ayarları"),
+          title: Text("Uygulama Ayarları"),
           backgroundColor: kPrimaryColor,
           centerTitle: true,
         ),

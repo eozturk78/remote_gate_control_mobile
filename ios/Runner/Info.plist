@@ -19,11 +19,11 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.3.16</string>
+	<string>1.3.41</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>25</string>
+	<string>81</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	
@@ -67,5 +67,16 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Mikrofona erişim, sesli mesaj göndermek için gereklidir.</string>
+	<key>FirebaseAppDelegateProxyEnabled</key>
+	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
+	<key>NSPushNotificationUsageDescription</key>
+	<string>Bildirim göndermek istiyoruz.</string>
+
 </dict>
 </plist>
