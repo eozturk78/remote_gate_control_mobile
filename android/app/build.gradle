@@ -34,8 +34,8 @@ android {
         applicationId "com.mobile.remote_gate_control_mobile"
         minSdkVersion 21                     // Firebase Messaging için minimum 21 ✅
         targetSdkVersion 34
-        versionCode 80 //flutterVersionCode.toInteger()
-        versionName '1.3.40'//flutterVersionName
+        versionCode 81 //flutterVersionCode.toInteger()
+        versionName '1.3.41'//flutterVersionName
     }
 
     signingConfigs {
