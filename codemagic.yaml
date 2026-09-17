@@ -1,0 +1,47 @@
+workflows:
+  android-workflow:
+    name: Android Release Build
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      groups:
+        # Create this group in Codemagic UI (Teams > Environment variables)
+        # with encrypted variables:
+        #   CM_KEYSTORE            - base64-encoded .jks/.keystore file
+        #   CM_KEYSTORE_PASSWORD   - storePassword from android/key.properties
+        #   CM_KEY_ALIAS           - keyAlias from android/key.properties
+        #   CM_KEY_PASSWORD        - keyPassword from android/key.properties
+        - keystore_credentials
+      vars:
+        PACKAGE_NAME: "com.mobile.remote_gate_control_mobile"
+      flutter: stable
+    scripts:
+      - name: Get Flutter packages
+        script: |
+          flutter packages pub get
+
+      - name: Set up local keystore for signing
+        script: |
+          echo $CM_KEYSTORE | base64 --decode > $CM_BUILD_DIR/android/app/keystore.jks
+          cat > $CM_BUILD_DIR/android/key.properties <<EOF
+          storePassword=$CM_KEYSTORE_PASSWORD
+          keyPassword=$CM_KEY_PASSWORD
+          keyAlias=$CM_KEY_ALIAS
+          storeFile=keystore.jks
+          EOF
+
+      - name: Build Android App Bundle
+        script: |
+          flutter build appbundle --release
+
+    artifacts:
+      - build/**/outputs/**/*.aab
+      - build/**/outputs/**/mapping.txt
+
+    publishing:
+      email:
+        recipients:
+          - eozturk78@gmail.com
+        notify:
+          success: true
+          failure: true
