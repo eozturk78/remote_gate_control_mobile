@@ -21,11 +21,11 @@
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-3506128953915434~2213542865</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.3.47</string>
+	<string>1.3.48</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>86</string>
+	<string>87</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	
