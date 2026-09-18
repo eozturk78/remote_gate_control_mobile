@@ -5,10 +5,12 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -51,11 +53,60 @@ class _SplashScreenState extends State<SplashScreen> {
   bool isConnected = true;
   bool needAPayment = true;
   bool closeAppAfterOpenGate = true;
+
+  // Banner ad shown at the top of the "door opened" success state.
+  BannerAd? _bannerAd;
+  bool _isBannerAdLoaded = false;
+
   @override
   void initState() {
     super.initState();
 
     checkInternet();
+    loadBannerAd();
+  }
+
+  void loadBannerAd() {
+    // Google's official test ad units always fill; used in debug builds so we
+    // never risk invalid-click activity on the real ad units during
+    // development, and so a load failure there proves it's a device/network
+    // issue rather than an AdMob account/ad-unit issue.
+    final adUnitId = kDebugMode
+        ? (Platform.isAndroid
+            ? 'ca-app-pub-3940256099942544/6300978111'
+            : 'ca-app-pub-3940256099942544/2934735716')
+        : (Platform.isAndroid
+            ? 'ca-app-pub-3506128953915434/4591588872'
+            : 'ca-app-pub-3506128953915434/9991427706');
+    _bannerAd = BannerAd(
+      adUnitId: adUnitId,
+      size: AdSize.banner,
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          print('BannerAd loaded ($adUnitId)');
+          if (!mounted) {
+            ad.dispose();
+            return;
+          }
+          setState(() {
+            _isBannerAdLoaded = true;
+          });
+        },
+        onAdFailedToLoad: (ad, error) {
+          print(
+              'BannerAd failed to load ($adUnitId): code=${error.code} domain=${error.domain} message=${error.message}');
+          ad.dispose();
+          _bannerAd = null;
+        },
+      ),
+    )..load();
+  }
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    super.dispose();
   }
 
   String localVersion = "";
@@ -231,7 +282,7 @@ class _SplashScreenState extends State<SplashScreen> {
         setState(() {});
 
         if (isOpenedDoor && closeAppAfterOpenGate == true)
-          Future.delayed(Duration(seconds: 2), () {
+          Future.delayed(Duration(seconds: 5), () {
             SystemNavigator.pop();
             if (Platform.isIOS) exit(0);
           });
@@ -303,33 +354,7 @@ class _SplashScreenState extends State<SplashScreen> {
     });
   }
 
-  /* showAdverdisement() {
-    _bannerAd = BannerAd(
-      adUnitId: Platform.isAndroid
-          ? 'ca-app-pub-3506128953915434/4612948259'
-          : 'ca-app-pub-3506128953915434/9991427706', // gerçek reklam ID ile değiştir
-      size: AdSize.banner,
-      request: const AdRequest(),
-      listener: BannerAdListener(
-        onAdLoaded: (_) {
-          setState(() {
-            _isAdLoaded = true;
-          });
-          print(_);
-        },
-        onAdFailedToLoad: (ad, error) {
-          print(error);
-          ad.dispose();
-        },
-      ),
-    )..load();
-
-    _bannerAd.load();
-  }*/
-
   bool isSendAgain = true;
-  // late BannerAd _bannerAd;
-  bool _isAdLoaded = false;
   sendToBackend(Device data) async {
     setState(() {
       isSendRequestToDevice = true;
@@ -341,7 +366,6 @@ class _SplashScreenState extends State<SplashScreen> {
           .sendRequestTeltonika(data.SerialNumber, data.HexCode!)
           .then((value) {
         saveLocation(data, true);
-        //  showAdverdisement();
         setState(() {
           isOpenGate = true;
           isSendRequest = true;
@@ -700,6 +724,14 @@ class _SplashScreenState extends State<SplashScreen> {
                       if (isOpenGate == true)
                         Column(
                           children: [
+                            if (_isBannerAdLoaded && _bannerAd != null)
+                              Container(
+                                alignment: Alignment.center,
+                                width: _bannerAd!.size.width.toDouble(),
+                                height: _bannerAd!.size.height.toDouble(),
+                                margin: const EdgeInsets.only(bottom: 15),
+                                child: AdWidget(ad: _bannerAd!),
+                              ),
                             const Icon(
                               Icons.check_circle,
                               size: 100.0,
@@ -845,12 +877,6 @@ class _SplashScreenState extends State<SplashScreen> {
                 child: const Text(
                     'Hizmetlerimiz hakkında bilgi almak için tıklayın'),
               ),
-            /* if (_isAdLoaded)
-              Container(
-                height: _bannerAd.size.height.toDouble(),
-                width: _bannerAd.size.width.toDouble(),
-                child: AdWidget(ad: _bannerAd),
-              ),*/
           ],
         ),
       ),

@@ -18,12 +18,14 @@
 	<string>remote_gate_control_mobile</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-3506128953915434~2213542865</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.3.42</string>
+	<string>1.3.46</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>82</string>
+	<string>85</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	
