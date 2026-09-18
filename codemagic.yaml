@@ -46,47 +46,47 @@ workflows:
           success: true
           failure: true
 
-  ios-workflow:
-    name: iOS Release Build
+  ios-testflight:
+    name: iOS - TestFlight
     max_build_duration: 60
     instance_type: mac_mini_m2
     integrations:
-      # Codemagic UI > Teams > Integrations > App Store Connect > add an API
-      # key generated in App Store Connect (Users and Access > Integrations >
-      # Keys, needs App Manager or Admin role), then name it exactly this.
-      app_store_connect: codemagic_api_key
+      # Codemagic UI > Personal Account > Integrations > App Store Connect >
+      # "Manage keys" - must match the key name shown there exactly.
+      app_store_connect: "Pultix"
     environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
       ios_signing:
         # With the App Store Connect integration above, Codemagic fetches/
         # generates the certificate and provisioning profile automatically -
         # no manual certificate upload needed.
         distribution_type: app_store
         bundle_identifier: com.mobile.remoteGateControlMobile
-      flutter: stable
-      xcode: latest
-      cocoapods: default
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'v*'
+          include: true
     scripts:
-      - name: Get Flutter packages
-        script: |
-          flutter packages pub get
-
-      - name: Install CocoaPods dependencies
-        script: |
-          find . -name "Podfile" -maxdepth 2 -execdir pod install \;
-
       - name: Set up code signing settings on Xcode project
         script: |
           xcode-project use-profiles
-
-      - name: Build ipa for distribution
+      - name: Get Flutter packages
+        script: |
+          flutter packages pub get
+      - name: Install pods
+        script: |
+          find . -name "Podfile" -maxdepth 2 -execdir pod install \;
+      - name: Flutter build ipa
         script: |
           flutter build ipa --release \
             --export-options-plist=/Users/builder/export_options.plist
-
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
-
     publishing:
       email:
         recipients:
@@ -97,4 +97,3 @@ workflows:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
-        submit_to_app_store: false
