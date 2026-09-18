@@ -45,3 +45,56 @@ workflows:
         notify:
           success: true
           failure: true
+
+  ios-workflow:
+    name: iOS Release Build
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      # Codemagic UI > Teams > Integrations > App Store Connect > add an API
+      # key generated in App Store Connect (Users and Access > Integrations >
+      # Keys, needs App Manager or Admin role), then name it exactly this.
+      app_store_connect: codemagic_api_key
+    environment:
+      ios_signing:
+        # With the App Store Connect integration above, Codemagic fetches/
+        # generates the certificate and provisioning profile automatically -
+        # no manual certificate upload needed.
+        distribution_type: app_store
+        bundle_identifier: com.mobile.remoteGateControlMobile
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Get Flutter packages
+        script: |
+          flutter packages pub get
+
+      - name: Install CocoaPods dependencies
+        script: |
+          find . -name "Podfile" -maxdepth 2 -execdir pod install \;
+
+      - name: Set up code signing settings on Xcode project
+        script: |
+          xcode-project use-profiles
+
+      - name: Build ipa for distribution
+        script: |
+          flutter build ipa --release \
+            --export-options-plist=/Users/builder/export_options.plist
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      email:
+        recipients:
+          - eozturk78@gmail.com
+        notify:
+          success: true
+          failure: true
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false
