@@ -78,6 +78,12 @@ flutter_icons:
 # The following section is specific to Flutter packages.
 flutter:
 
+  # google_mobile_ads (CocoaPods-only) conflicts with webview_flutter_wkwebview
+  # (which supports Swift Package Manager) when SPM is enabled, breaking `pod
+  # install` on iOS builds. Force CocoaPods for all plugins until that's fixed.
+  config:
+    enable-swift-package-manager: false
+
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
