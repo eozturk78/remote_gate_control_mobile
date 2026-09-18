@@ -1,4 +1,4 @@
-import 'package:dropdown_search2/dropdown_search2.dart';
+import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:remote_gate_control_mobile/apis/apis.dart';
 import 'package:remote_gate_control_mobile/models/device.dart';
@@ -79,36 +79,40 @@ class _GuestTokenDetailState extends State<GuestTokenDetailScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               DropdownSearch<String>(
-                showSearchBox: true,
-                items: devices?.map((e) => e.Name).toList(),
-                onChanged: (value) {
+                items: (filter, infiniteScrollProps) =>
+                    devices?.map((e) => e.Name).toList() ?? [],
+                onSelected: (value) {
                   setState(() {
                     _selectedDevice = devices
                         ?.where((element) => element.Name == value)
                         .first;
                   });
                 },
-                label: "Site",
                 selectedItem: _selectedDevice?.Name,
-                dropdownSearchDecoration: const InputDecoration(
-                  contentPadding: EdgeInsets.symmetric(vertical: 0.0),
+                popupProps: const PopupProps.menu(showSearchBox: true),
+                decoratorProps: const DropDownDecoratorProps(
+                  decoration: InputDecoration(
+                    labelText: "Site",
+                    contentPadding: EdgeInsets.symmetric(vertical: 0.0),
+                  ),
                 ),
               ),
               SizedBox(
                 height: 10,
               ),
               DropdownSearch<String>(
-                showSearchBox: false,
-                items: durationList,
-                onChanged: (value) {
+                items: (filter, infiniteScrollProps) => durationList ?? [],
+                onSelected: (value) {
                   setState(() {
                     _selectedDuration = value;
                   });
                 },
-                label: 'Süre (Geçerli Gün)',
                 selectedItem: _selectedDuration,
-                dropdownSearchDecoration: const InputDecoration(
-                  contentPadding: EdgeInsets.symmetric(vertical: 0.0),
+                decoratorProps: const DropDownDecoratorProps(
+                  decoration: InputDecoration(
+                    labelText: 'Süre (Geçerli Gün)',
+                    contentPadding: EdgeInsets.symmetric(vertical: 0.0),
+                  ),
                 ),
               ),
               SizedBox(

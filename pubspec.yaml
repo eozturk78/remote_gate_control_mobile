@@ -46,7 +46,7 @@ dependencies:
   url_launcher: ^6.1.7
   internet_connection_checker: ^1.0.0+1
   geolocator: ^9.0.2
-  dropdown_search2: any  
+  dropdown_search: ^7.0.0
   just_audio: ^0.9.46
   slide_to_act: ^2.0.0
   flutter_swipe_button: ^2.1.3

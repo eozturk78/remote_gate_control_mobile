@@ -1,6 +1,6 @@
 import 'dart:ui';
 
-import 'package:dropdown_search2/dropdown_search2.dart';
+import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:remote_gate_control_mobile/apis/apis.dart';
@@ -114,38 +114,44 @@ class _SiteDetailState extends State<SiteDetail> {
                 height: 5,
               ),
               DropdownSearch<String>(
-                showSearchBox: true,
-                items: countries?.map((e) => e.CountryName).toList(),
-                onChanged: (value) {
+                items: (filter, infiniteScrollProps) =>
+                    countries?.map((e) => e.CountryName).toList() ?? [],
+                onSelected: (value) {
                   setState(() {
                     _selectedCountry = countries
                         ?.where((element) => element.CountryName == value)
                         .first;
                   });
                 },
-                label: "Ülke",
                 selectedItem: _selectedCountry?.CountryName,
-                dropdownSearchDecoration: const InputDecoration(
-                  contentPadding: EdgeInsets.symmetric(vertical: 0.0),
+                popupProps: const PopupProps.menu(showSearchBox: true),
+                decoratorProps: const DropDownDecoratorProps(
+                  decoration: InputDecoration(
+                    labelText: "Ülke",
+                    contentPadding: EdgeInsets.symmetric(vertical: 0.0),
+                  ),
                 ),
               ),
               SizedBox(
                 height: 5,
               ),
               DropdownSearch<String>(
-                showSearchBox: true,
-                items: cities?.map((e) => e.CityName).toList(),
-                onChanged: (value) {
+                items: (filter, infiniteScrollProps) =>
+                    cities?.map((e) => e.CityName).toList() ?? [],
+                onSelected: (value) {
                   setState(() {
                     _selectedCity = cities
                         ?.where((element) => element.CityName == value)
                         .first;
                   });
                 },
-                label: "Şehir",
                 selectedItem: _selectedCity?.CityName,
-                dropdownSearchDecoration: const InputDecoration(
-                  contentPadding: EdgeInsets.symmetric(vertical: 0.0),
+                popupProps: const PopupProps.menu(showSearchBox: true),
+                decoratorProps: const DropDownDecoratorProps(
+                  decoration: InputDecoration(
+                    labelText: "Şehir",
+                    contentPadding: EdgeInsets.symmetric(vertical: 0.0),
+                  ),
                 ),
               ),
               SizedBox(

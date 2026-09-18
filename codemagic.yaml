@@ -55,9 +55,8 @@ workflows:
       # "Manage keys" - must match the key name shown there exactly.
       app_store_connect: "Pultix"
     environment:
-      # Pinned (not "stable") because dropdown_search2 uses Flutter Material
-      # APIs (TextTheme.subtitle1/subtitle2, Scrollbar.isAlwaysShown) that
-      # got removed in later stable releases, breaking the build.
+      # Pinned (not "stable") to match the Flutter version this app is
+      # tested against, so Codemagic's SDK can't drift out from under us.
       flutter: 3.35.4
       xcode: latest
       cocoapods: default
