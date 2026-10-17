@@ -10,6 +10,7 @@ import 'package:remote_gate_control_mobile/screens/main.dart';
 import 'package:remote_gate_control_mobile/screens/payment_information.dart';
 import 'package:remote_gate_control_mobile/screens/splash_screen.dart';
 import 'package:remote_gate_control_mobile/toast.dart';
+import 'package:remote_gate_control_mobile/widgets/bottom_ad.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import 'package:geolocator/geolocator.dart';
@@ -41,6 +42,7 @@ class _LoginState extends State<Login> {
       pref.setString('token', value['token']);
       pref.setString('email', email.text);
       pref.setString('sites', jsonEncode(value['sites']));
+      setAdsEnabled(value['showAds'] ?? 0);
       if (value['isPaymentRequired'] == 1) {
         Navigator.push(
             context,
@@ -144,7 +146,10 @@ class _LoginState extends State<Login> {
         padding: EdgeInsets.all(15),
         child: Column(
           children: [
-            Image.asset("assets/images/app-logo.png"),
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 18),
+              child: Image.asset("assets/images/app-logo.png", height: 60),
+            ),
             TextFormField(
               controller: email,
               obscureText: false,

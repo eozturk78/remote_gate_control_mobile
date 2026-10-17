@@ -5,12 +5,10 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -22,6 +20,7 @@ import 'package:remote_gate_control_mobile/screens/login.dart';
 import 'package:remote_gate_control_mobile/screens/payment_information.dart';
 import 'package:remote_gate_control_mobile/screens/profile.dart';
 import 'package:remote_gate_control_mobile/toast.dart';
+import 'package:remote_gate_control_mobile/widgets/bottom_ad.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slide_to_act/slide_to_act.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -54,60 +53,15 @@ class _SplashScreenState extends State<SplashScreen> {
   bool needAPayment = true;
   bool closeAppAfterOpenGate = true;
 
-  // Banner ad shown at the top of the "door opened" success state.
-  BannerAd? _bannerAd;
-  bool _isBannerAdLoaded = false;
-
   @override
   void initState() {
     super.initState();
 
     checkInternet();
-    loadBannerAd();
   }
 
-  void loadBannerAd() {
-    // Google's official test ad units always fill; used in debug builds so we
-    // never risk invalid-click activity on the real ad units during
-    // development, and so a load failure there proves it's a device/network
-    // issue rather than an AdMob account/ad-unit issue.
-    final adUnitId = kDebugMode
-        ? (Platform.isAndroid
-            ? 'ca-app-pub-3940256099942544/6300978111'
-            : 'ca-app-pub-3940256099942544/2934735716')
-        : (Platform.isAndroid
-            ? 'ca-app-pub-3506128953915434/4591588872'
-            : 'ca-app-pub-3506128953915434/9991427706');
-    _bannerAd = BannerAd(
-      adUnitId: adUnitId,
-      size: AdSize.banner,
-      request: const AdRequest(),
-      listener: BannerAdListener(
-        onAdLoaded: (ad) {
-          print('BannerAd loaded ($adUnitId)');
-          if (!mounted) {
-            ad.dispose();
-            return;
-          }
-          setState(() {
-            _isBannerAdLoaded = true;
-          });
-        },
-        onAdFailedToLoad: (ad, error) {
-          print(
-              'BannerAd failed to load ($adUnitId): code=${error.code} domain=${error.domain} message=${error.message}');
-          ad.dispose();
-          _bannerAd = null;
-        },
-      ),
-    )..load();
-  }
-
-  @override
-  void dispose() {
-    _bannerAd?.dispose();
-    super.dispose();
-  }
+  // The ad itself is pinned to the bottom of every page by AdShell.
+  applyShowAds(dynamic value) => setAdsEnabled(value);
 
   String localVersion = "";
   checkInternet() async {
@@ -267,6 +221,7 @@ class _SplashScreenState extends State<SplashScreen> {
         .sendOpenDoorRequest(
             lat, long, data.SiteId, data.DeviceId, isOpenedDoor, dist, token)
         .then((value) async {
+      applyShowAds(value['showAds']);
       if (value['isPaymentRequired'] == 1) {
         //    pref.remove("token");
         Navigator.push(
@@ -295,12 +250,74 @@ class _SplashScreenState extends State<SplashScreen> {
     });
   }
 
+  bool _updateDialogShown = false;
+
+  // Store versions are managed per platform in the admin system parameters;
+  // asks once per app start when the installed version is older.
+  checkAppVersion(dynamic value) {
+    if (_updateDialogShown || localVersion.isEmpty || !mounted) return;
+    final storeVersion =
+        (Platform.isIOS ? value['iosVersion'] : value['androidVersion'])
+            ?.toString();
+    if (storeVersion == null || !isNewerVersion(storeVersion, localVersion)) {
+      return;
+    }
+    _updateDialogShown = true;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Yeni versiyon mevcut"),
+        content: Text(
+            "Uygulamanın yeni versiyonu ($storeVersion) yayında. Hizmetlerimizden kesintisiz yararlanmak için lütfen uygulamayı güncelleyin."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text("Daha Sonra"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
+            onPressed: openStore,
+            child: const Text("Güncelle"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  openStore() async {
+    final url = Platform.isIOS
+        ? 'https://apps.apple.com/us/app/ae-smart-systems/id6446314960'
+        : 'https://play.google.com/store/apps/details?id=com.mobile.remote_gate_control_mobile';
+    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+  }
+
+  // true when remote (e.g. "1.3.51") is newer than local (e.g. "1.3.50").
+  bool isNewerVersion(String remote, String local) {
+    List<int> parse(String v) => v
+        .split('+')
+        .first
+        .trim()
+        .split('.')
+        .map((p) => int.tryParse(p) ?? 0)
+        .toList();
+    final r = parse(remote), l = parse(local);
+    for (var i = 0; i < max(r.length, l.length); i++) {
+      final a = i < r.length ? r[i] : 0;
+      final b = i < l.length ? l[i] : 0;
+      if (a != b) return a > b;
+    }
+    return false;
+  }
+
   String version = "";
   getGateList() async {
     Apis apis = Apis();
     SharedPreferences pref = await SharedPreferences.getInstance();
     apis.getGateList().then((value) async {
       pref.setBool('isSiteManager', value['isSiteManager'] == 1 ? true : false);
+      applyShowAds(value['showAds']);
+      checkAppVersion(value);
       version = value['version'];
       if (value['isPaymentRequired'] == 1) {
         //    pref.remove("token");
@@ -515,331 +532,361 @@ class _SplashScreenState extends State<SplashScreen> {
                 style: TextStyle(color: Colors.white),
               ),
             )*/
+            IconButton(
+              icon: const Icon(Icons.settings),
+              tooltip: 'Ayarlar',
+              onPressed: openSettings,
+            ),
           ]),
-      body: SingleChildScrollView(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Padding(
-              padding: EdgeInsets.all(25),
-              child: Column(
-                children: [
-                  Image.asset(
-                    "assets/images/app-logo.png",
-                  )
-                ],
+      // Logo stays on top; the doors scroll inside the remaining area so the
+      // bottom ad never covers them.
+      body: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 18),
+            child: Image.asset(
+              "assets/images/app-logo.png",
+              height: 60,
+            ),
+          ),
+          if (!isConnected)
+            const Padding(
+              padding: EdgeInsets.all(10),
+              child: Center(
+                child: Text(
+                  "Uygulamak kullanmak için internet bağlantısına ihtiyacınız var",
+                  style: TextStyle(fontSize: 18),
+                ),
               ),
             ),
-            if (!isConnected)
-              const Padding(
-                padding: EdgeInsets.all(10),
-                child: Center(
-                  child: Text(
-                    "Uygulamak kullanmak için internet bağlantısına ihtiyacınız var",
-                    style: TextStyle(fontSize: 18),
-                  ),
-                ),
-              ),
-            if (isSendRequestToDevice)
-              Column(
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const SpinKitCircle(
-                    color: kPrimaryColor,
-                    size: 50.0,
-                  ),
-                  // ignore: unnecessary_string_interpolations
-                  Text("$stepStatusText")
-                ],
-              ),
-            if (!isSendRequestToDevice &&
-                isDataExist == true &&
-                !isSendRequest &&
-                isConnected &&
-                !isLocationFailed)
-              Padding(
-                padding: const EdgeInsets.all(5),
-                child: Column(
-                  children: [
-                    ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: dataList.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          return Column(
-                            children: [
-                              ListView.builder(
-                                shrinkWrap: true,
-                                itemCount: dataList[index].Devices.length,
-                                itemBuilder: (BuildContext context, int j) {
-                                  return Column(
-                                    children: [
-                                      dataList[index].Devices[j].isSiteActive ==
-                                              1
-                                          ? SlideAction(
-                                              // ignore: sort_child_properties_last
-                                              child: Container(
-                                                margin:
-                                                    EdgeInsets.only(left: 90),
-                                                child: Align(
-                                                  alignment:
-                                                      Alignment.centerLeft,
-                                                  child: Text(
-                                                    dataList[index]
+                  if (isSendRequestToDevice)
+                    Column(
+                      children: [
+                        const SpinKitCircle(
+                          color: kPrimaryColor,
+                          size: 50.0,
+                        ),
+                        // ignore: unnecessary_string_interpolations
+                        Text("$stepStatusText")
+                      ],
+                    ),
+                  if (!isSendRequestToDevice &&
+                      isDataExist == true &&
+                      !isSendRequest &&
+                      isConnected &&
+                      !isLocationFailed)
+                    Padding(
+                      padding: const EdgeInsets.all(5),
+                      child: Column(
+                        children: [
+                          ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: dataList.length,
+                              itemBuilder: (BuildContext context, int index) {
+                                return Column(
+                                  children: [
+                                    ListView.builder(
+                                      shrinkWrap: true,
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
+                                      itemCount: dataList[index].Devices.length,
+                                      itemBuilder:
+                                          (BuildContext context, int j) {
+                                        return Column(
+                                          children: [
+                                            dataList[index]
                                                         .Devices[j]
-                                                        .Name,
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 15,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                              onSubmit: () {
-                                                _playSound();
-                                                _timer?.cancel();
-                                                _data = dataList[index];
-                                                setState(() {
-                                                  isSendRequest = false;
-                                                  isSendRequestToDevice = true;
-                                                  isLocationFailed = false;
-                                                });
-                                                sendRequestToDevice(
-                                                    _data.Devices[0]);
-                                              },
-                                              elevation: 2,
-                                              borderRadius: 12,
-                                              innerColor: Colors.white,
-                                              outerColor: dataList[index]
-                                                          .Devices[j]
-                                                          .isSiteActive ==
-                                                      1
-                                                  ? kPrimaryColor
-                                                  : Color.fromARGB(
-                                                      255, 73, 3, 15),
-                                              sliderButtonIcon: dataList[index]
-                                                          .Devices[j]
-                                                          .isSiteActive ==
-                                                      1
-                                                  ? const Icon(
-                                                      Icons.arrow_forward)
-                                                  : const Icon(Icons.power_off),
-                                              submittedIcon: const Icon(
-                                                Icons.check,
-                                                color: Color.fromARGB(
-                                                    255, 207, 204, 204),
-                                              ),
-                                              sliderRotate: false,
-                                              alignment: Alignment.centerLeft,
-                                            )
-                                          : Container(
-                                              decoration: BoxDecoration(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                                color: Color.fromARGB(
-                                                    255, 73, 3, 15),
-                                              ),
-                                              height: 70,
-                                              width: MediaQuery.of(context)
-                                                  .size
-                                                  .width,
-                                              child: Column(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  Row(
-                                                    children: [
-                                                      Container(
-                                                        margin: const EdgeInsets
-                                                            .only(left: 8),
-                                                        decoration:
-                                                            BoxDecoration(
-                                                          borderRadius:
-                                                              BorderRadius
-                                                                  .circular(12),
-                                                          color: Colors.white,
-                                                        ),
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(15),
-                                                        child: Icon(
-                                                          Icons.power_off,
-                                                          color: Colors.black,
+                                                        .isSiteActive ==
+                                                    1
+                                                ? SlideAction(
+                                                    // ignore: sort_child_properties_last
+                                                    child: Container(
+                                                      margin: EdgeInsets.only(
+                                                          left: 90),
+                                                      child: Align(
+                                                        alignment: Alignment
+                                                            .centerLeft,
+                                                        child: Text(
+                                                          dataList[index]
+                                                              .Devices[j]
+                                                              .Name,
+                                                          style:
+                                                              const TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize: 15,
+                                                          ),
                                                         ),
                                                       ),
-                                                      Container(
-                                                        margin: EdgeInsets.only(
-                                                            left: 25),
-                                                        child: Column(
-                                                          crossAxisAlignment:
-                                                              CrossAxisAlignment
-                                                                  .start,
-                                                          children: [
-                                                            Text(
-                                                              dataList[index]
-                                                                  .Devices[j]
-                                                                  .Name,
-                                                              style:
-                                                                  const TextStyle(
-                                                                fontSize: 15,
-                                                                color: Colors
-                                                                    .white,
-                                                              ),
-                                                            ),
-                                                            Text(
-                                                              "Cihazda enerji yok.",
-                                                              style:
-                                                                  const TextStyle(
-                                                                fontSize: 12,
-                                                                color: Colors
-                                                                    .white,
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      )
-                                                    ],
+                                                    ),
+                                                    onSubmit: () {
+                                                      _playSound();
+                                                      _timer?.cancel();
+                                                      _data = dataList[index];
+                                                      setState(() {
+                                                        isSendRequest = false;
+                                                        isSendRequestToDevice =
+                                                            true;
+                                                        isLocationFailed =
+                                                            false;
+                                                      });
+                                                      sendRequestToDevice(
+                                                          _data.Devices[0]);
+                                                    },
+                                                    elevation: 2,
+                                                    borderRadius: 12,
+                                                    innerColor: Colors.white,
+                                                    outerColor: dataList[index]
+                                                                .Devices[j]
+                                                                .isSiteActive ==
+                                                            1
+                                                        ? kPrimaryColor
+                                                        : Color.fromARGB(
+                                                            255, 73, 3, 15),
+                                                    sliderButtonIcon: dataList[
+                                                                    index]
+                                                                .Devices[j]
+                                                                .isSiteActive ==
+                                                            1
+                                                        ? const Icon(
+                                                            Icons.arrow_forward)
+                                                        : const Icon(
+                                                            Icons.power_off),
+                                                    submittedIcon: const Icon(
+                                                      Icons.check,
+                                                      color: Color.fromARGB(
+                                                          255, 207, 204, 204),
+                                                    ),
+                                                    sliderRotate: false,
+                                                    alignment:
+                                                        Alignment.centerLeft,
                                                   )
-                                                ],
-                                              ),
+                                                : Container(
+                                                    decoration: BoxDecoration(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              12),
+                                                      color: Color.fromARGB(
+                                                          255, 73, 3, 15),
+                                                    ),
+                                                    height: 70,
+                                                    width:
+                                                        MediaQuery.of(context)
+                                                            .size
+                                                            .width,
+                                                    child: Column(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Row(
+                                                          children: [
+                                                            Container(
+                                                              margin:
+                                                                  const EdgeInsets
+                                                                      .only(
+                                                                      left: 8),
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            12),
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .all(15),
+                                                              child: Icon(
+                                                                Icons.power_off,
+                                                                color: Colors
+                                                                    .black,
+                                                              ),
+                                                            ),
+                                                            Container(
+                                                              margin: EdgeInsets
+                                                                  .only(
+                                                                      left: 25),
+                                                              child: Column(
+                                                                crossAxisAlignment:
+                                                                    CrossAxisAlignment
+                                                                        .start,
+                                                                children: [
+                                                                  Text(
+                                                                    dataList[
+                                                                            index]
+                                                                        .Devices[
+                                                                            j]
+                                                                        .Name,
+                                                                    style:
+                                                                        const TextStyle(
+                                                                      fontSize:
+                                                                          15,
+                                                                      color: Colors
+                                                                          .white,
+                                                                    ),
+                                                                  ),
+                                                                  Text(
+                                                                    "Cihazda enerji yok.",
+                                                                    style:
+                                                                        const TextStyle(
+                                                                      fontSize:
+                                                                          12,
+                                                                      color: Colors
+                                                                          .white,
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            )
+                                                          ],
+                                                        )
+                                                      ],
+                                                    ),
+                                                  ),
+                                            const SizedBox(
+                                              height: 4,
                                             ),
-                                      const SizedBox(
-                                        height: 4,
-                                      ),
-                                    ],
-                                  );
-                                },
-                              ),
-                            ],
-                          );
-                        }),
-                  ],
-                ),
-              )
-            else if (!isSendRequestToDevice && isSendRequest)
-              Padding(
-                padding: const EdgeInsets.all(15),
-                child: Center(
-                  child: Column(
-                    children: [
-                      if (isOpenGate == true)
-                        Column(
-                          children: [
-                            if (_isBannerAdLoaded && _bannerAd != null)
-                              Container(
-                                alignment: Alignment.center,
-                                width: _bannerAd!.size.width.toDouble(),
-                                height: _bannerAd!.size.height.toDouble(),
-                                margin: const EdgeInsets.only(bottom: 15),
-                                child: AdWidget(ad: _bannerAd!),
-                              ),
-                            const Icon(
-                              Icons.check_circle,
-                              size: 100.0,
-                              color: Colors.green,
-                            ),
-                            const Text(
-                              "Kapı açma sinyali gönderildi.",
-                              style: TextStyle(
-                                  color: Colors.green,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                            if (closeAppAfterOpenGate == false)
-                              ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    minimumSize: const Size.fromHeight(40),
-                                    backgroundColor: kPrimaryColor,
-                                  ),
-                                  onPressed: () {
-                                    _timer?.cancel();
-                                    setState(() {
-                                      isSendRequest = false;
-                                      isLocationFailed = false;
-                                    });
-                                  },
-                                  child: const Text("Listeye dön")),
-                            if (isDevicePaymentRequired! == true)
-                              Padding(
-                                padding: EdgeInsets.all(10),
-                                child: Column(
-                                  children: [
-                                    const Text(
-                                      "Hizmetinizin aksamaması için kapınızda bağlı bulunan sim kartınızın yıllık veri iletim ücretinin ödenmesi gerekmektedir. Lütfen konu ile ilgili site yöneticinize başvurun",
-                                      style: TextStyle(
-                                          color: Colors.red, fontSize: 15),
-                                    ),
-                                    Row(
-                                      children: [
-                                        ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: kPrimaryColor,
-                                          ),
-                                          onPressed: () async {
-                                            SharedPreferences pref =
-                                                await SharedPreferences
-                                                    .getInstance();
-
-                                            pref.setString(
-                                                "deviceId", _deviceId);
-                                            Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        const DevicePaymentInformationScreen()));
-                                          },
-                                          child: const Text("Daha Fazla Bilgi"),
-                                        ),
-                                        const Spacer(),
-                                        ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.grey,
-                                          ),
-                                          onPressed: () {
-                                            SystemNavigator.pop();
-                                          },
-                                          child: const Text("Uygulamayı Kapat"),
-                                        ),
-                                      ],
+                                          ],
+                                        );
+                                      },
                                     ),
                                   ],
-                                ),
-                              )
-                          ],
-                        )
-                      else
-                        Column(
-                          children: [
-                            const Icon(
-                              Icons.remove_circle_outline_sharp,
-                              size: 100.0,
-                              color: Colors.red,
-                            ),
-                            const Text(
-                              "Kapı açılamadı.",
-                              style: TextStyle(
-                                  color: Colors.red,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                            ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  minimumSize: const Size.fromHeight(40),
-                                  backgroundColor: kPrimaryColor,
-                                ),
-                                onPressed: () {
-                                  _timer?.cancel();
-                                  setState(() {
-                                    isSendRequest = false;
-                                    isLocationFailed = false;
-                                  });
-                                },
-                                child: const Text("Listeye dön")),
-                          ],
-                        ),
-                      const SizedBox(
-                        height: 50,
+                                );
+                              }),
+                        ],
                       ),
-                      /* if (version != localVersion)
+                    )
+                  else if (!isSendRequestToDevice && isSendRequest)
+                    Padding(
+                      padding: const EdgeInsets.all(15),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            if (isOpenGate == true)
+                              Column(
+                                children: [
+                                  const Icon(
+                                    Icons.check_circle,
+                                    size: 100.0,
+                                    color: Colors.green,
+                                  ),
+                                  const Text(
+                                    "Kapı açma sinyali gönderildi.",
+                                    style: TextStyle(
+                                        color: Colors.green,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  if (closeAppAfterOpenGate == false)
+                                    ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          minimumSize:
+                                              const Size.fromHeight(40),
+                                          backgroundColor: kPrimaryColor,
+                                        ),
+                                        onPressed: () {
+                                          _timer?.cancel();
+                                          setState(() {
+                                            isSendRequest = false;
+                                            isLocationFailed = false;
+                                          });
+                                        },
+                                        child: const Text("Listeye dön")),
+                                  if (isDevicePaymentRequired! == true)
+                                    Padding(
+                                      padding: EdgeInsets.all(10),
+                                      child: Column(
+                                        children: [
+                                          const Text(
+                                            "Hizmetinizin aksamaması için kapınızda bağlı bulunan sim kartınızın yıllık veri iletim ücretinin ödenmesi gerekmektedir. Lütfen konu ile ilgili site yöneticinize başvurun",
+                                            style: TextStyle(
+                                                color: Colors.red,
+                                                fontSize: 15),
+                                          ),
+                                          Row(
+                                            children: [
+                                              ElevatedButton(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor:
+                                                      kPrimaryColor,
+                                                ),
+                                                onPressed: () async {
+                                                  SharedPreferences pref =
+                                                      await SharedPreferences
+                                                          .getInstance();
+
+                                                  pref.setString(
+                                                      "deviceId", _deviceId);
+                                                  Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              const DevicePaymentInformationScreen()));
+                                                },
+                                                child: const Text(
+                                                    "Daha Fazla Bilgi"),
+                                              ),
+                                              const Spacer(),
+                                              ElevatedButton(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: Colors.grey,
+                                                ),
+                                                onPressed: () {
+                                                  SystemNavigator.pop();
+                                                },
+                                                child: const Text(
+                                                    "Uygulamayı Kapat"),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                ],
+                              )
+                            else
+                              Column(
+                                children: [
+                                  const Icon(
+                                    Icons.remove_circle_outline_sharp,
+                                    size: 100.0,
+                                    color: Colors.red,
+                                  ),
+                                  const Text(
+                                    "Kapı açılamadı.",
+                                    style: TextStyle(
+                                        color: Colors.red,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        minimumSize: const Size.fromHeight(40),
+                                        backgroundColor: kPrimaryColor,
+                                      ),
+                                      onPressed: () {
+                                        _timer?.cancel();
+                                        setState(() {
+                                          isSendRequest = false;
+                                          isLocationFailed = false;
+                                        });
+                                      },
+                                      child: const Text("Listeye dön")),
+                                ],
+                              ),
+                            const SizedBox(
+                              height: 50,
+                            ),
+                            /* if (version != localVersion)
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -861,39 +908,39 @@ class _SplashScreenState extends State<SplashScreen> {
                                 child: Text("Hemen İndir"))
                           ],
                         ),*/
-                    ],
-                  ),
-                ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  if (!isSendRequestToDevice)
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        textStyle: const TextStyle(fontSize: 12),
+                      ),
+                      onPressed: () async {
+                        const url =
+                            'https://aesmartsystems.com'; //Twitter's URL
+                        await launch(url);
+                      },
+                      child: const Text(
+                          'Hizmetlerimiz hakkında bilgi almak için tıklayın'),
+                    ),
+                ],
               ),
-            if (!isSendRequestToDevice)
-              TextButton(
-                style: TextButton.styleFrom(
-                  textStyle: const TextStyle(fontSize: 12),
-                ),
-                onPressed: () async {
-                  const url = 'https://aesmartsystems.com'; //Twitter's URL
-                  await launch(url);
-                },
-                child: const Text(
-                    'Hizmetlerimiz hakkında bilgi almak için tıklayın'),
-              ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.settings),
-        backgroundColor: kPrimaryColor,
-        onPressed: () {
-          Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: ((context) => const ProfileScreen(null))))
-              .then((value) {
-            if (_timer != null) _timer?.cancel();
-            navigateUser();
-          });
-        },
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  openSettings() {
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: ((context) => const ProfileScreen(null)))).then((value) {
+      if (_timer != null) _timer?.cancel();
+      navigateUser();
+    });
   }
 }

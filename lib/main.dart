@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:remote_gate_control_mobile/firebase_options.dart';
+import 'package:remote_gate_control_mobile/widgets/bottom_ad.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/splash_screen.dart';
@@ -15,6 +16,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await loadAdsPreference();
   runApp(const MyApp(null));
 }
 
@@ -32,6 +34,7 @@ class _MyAppState extends State<MyApp> {
         useMaterial3: false,
       ),
       debugShowCheckedModeBanner: false,
+      builder: (context, child) => AdShell(child: child!),
       home: SafeArea(child: SplashScreen()),
     );
   }
