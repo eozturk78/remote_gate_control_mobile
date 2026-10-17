@@ -236,7 +236,11 @@ class _SplashScreenState extends State<SplashScreen> {
         closeAppAfterOpenGate = pref.getBool("closeAppAfterOpenGate") ?? true;
         setState(() {});
 
-        if (isOpenedDoor && closeAppAfterOpenGate == true)
+        // Keep the app open when an update is available so the note can be
+        // read and tapped.
+        if (isOpenedDoor &&
+            closeAppAfterOpenGate == true &&
+            _newVersion == null)
           Future.delayed(Duration(seconds: 5), () {
             SystemNavigator.pop();
             if (Platform.isIOS) exit(0);
@@ -250,39 +254,25 @@ class _SplashScreenState extends State<SplashScreen> {
     });
   }
 
-  bool _updateDialogShown = false;
+  // Newer store version than the installed one, shown as a note after the
+  // door is opened. Store versions are managed per platform in the admin
+  // system parameters.
+  String? _newVersion;
 
-  // Store versions are managed per platform in the admin system parameters;
-  // asks once per app start when the installed version is older.
   checkAppVersion(dynamic value) {
-    if (_updateDialogShown || localVersion.isEmpty || !mounted) return;
+    if (localVersion.isEmpty || !mounted) return;
     final storeVersion =
         (Platform.isIOS ? value['iosVersion'] : value['androidVersion'])
             ?.toString();
-    if (storeVersion == null || !isNewerVersion(storeVersion, localVersion)) {
-      return;
+    final newVersion =
+        storeVersion != null && isNewerVersion(storeVersion, localVersion)
+            ? storeVersion
+            : null;
+    if (newVersion != _newVersion) {
+      setState(() {
+        _newVersion = newVersion;
+      });
     }
-    _updateDialogShown = true;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Yeni versiyon mevcut"),
-        content: Text(
-            "Uygulamanın yeni versiyonu ($storeVersion) yayında. Hizmetlerimizden kesintisiz yararlanmak için lütfen uygulamayı güncelleyin."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text("Daha Sonra"),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
-            onPressed: openStore,
-            child: const Text("Güncelle"),
-          ),
-        ],
-      ),
-    );
   }
 
   openStore() async {
@@ -886,28 +876,23 @@ class _SplashScreenState extends State<SplashScreen> {
                             const SizedBox(
                               height: 50,
                             ),
-                            /* if (version != localVersion)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                                "Hizmetlerimizden yararlanmak için lütfen yeni versiyonumuzu indirin."),
-                            ElevatedButton(
-                                onPressed: () async {
-                                  if (Platform.isIOS) {
-                                    const url =
-                                        'https://apps.apple.com/us/app/ae-smart-systems/id6446314960'; //Twitter's URL
-                                    await launch(url);
-                                  } else {
-                                    const url =
-                                        'https://play.google.com/store/apps/details?id=com.mobile.remote_gate_control_mobile'; //Twitter's URL
-                                    await launch(url);
-                                  }
-                                },
-                                child: Text("Hemen İndir"))
-                          ],
-                        ),*/
+                            if (isOpenGate == true && _newVersion != null)
+                              Column(
+                                children: [
+                                  Text(
+                                    "Uygulamanın yeni versiyonu ($_newVersion) yayında. Hizmetlerimizden kesintisiz yararlanmak için lütfen güncelleyin.",
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: kPrimaryColor,
+                                    ),
+                                    onPressed: openStore,
+                                    child: const Text("Hemen Güncelle"),
+                                  ),
+                                ],
+                              ),
                           ],
                         ),
                       ),
