@@ -48,7 +48,6 @@ class _SplashScreenState extends State<SplashScreen> {
   Timer? _timer;
   late String _deviceId;
   String stepStatusText = "";
-  var _data = null;
   bool isConnected = true;
   bool needAPayment = true;
   bool closeAppAfterOpenGate = true;
@@ -140,14 +139,32 @@ class _SplashScreenState extends State<SplashScreen> {
     }
   }
 
+  List<Device> doors = [];
+
+  static const _trAlphabet = 'abcçdefgğhıijklmnoöprsştuüvyz';
+
+  // Case-insensitive compare using Turkish letter order.
+  static int compareTr(String a, String b) {
+    String lower(String s) =>
+        s.replaceAll('I', 'ı').replaceAll('İ', 'i').toLowerCase();
+    final x = lower(a), y = lower(b);
+    for (var i = 0; i < min(x.length, y.length); i++) {
+      if (x[i] == y[i]) continue;
+      final xi = _trAlphabet.indexOf(x[i]), yi = _trAlphabet.indexOf(y[i]);
+      if (xi >= 0 && yi >= 0) return xi - yi;
+      return x.codeUnitAt(i) - y.codeUnitAt(i);
+    }
+    return x.length - y.length;
+  }
+
   prepareScreen(data) {
     if (data != null) {
       var records = (data as List).map((e) => Site.fromJson(e)).toList();
       if (records.isNotEmpty || records[0].Devices.length > 1) {
         dataList = records.toList();
-
-        dataList.sort((a, b) =>
-            b.IsActiveDevice.toString().compareTo(a.IsActiveDevice.toString()));
+        // All doors of all sites in one list, sorted by name.
+        doors = dataList.expand((s) => s.Devices).toList()
+          ..sort((a, b) => compareTr(a.Name, b.Name));
         setState(() {
           isDataExist = true;
           isSendRequestToDevice = false;
@@ -579,175 +596,114 @@ class _SplashScreenState extends State<SplashScreen> {
                           ListView.builder(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
-                              itemCount: dataList.length,
+                              itemCount: doors.length,
                               itemBuilder: (BuildContext context, int index) {
+                                final door = doors[index];
                                 return Column(
                                   children: [
-                                    ListView.builder(
-                                      shrinkWrap: true,
-                                      physics:
-                                          const NeverScrollableScrollPhysics(),
-                                      itemCount: dataList[index].Devices.length,
-                                      itemBuilder:
-                                          (BuildContext context, int j) {
-                                        return Column(
-                                          children: [
-                                            dataList[index]
-                                                        .Devices[j]
-                                                        .isSiteActive ==
-                                                    1
-                                                ? SlideAction(
-                                                    // ignore: sort_child_properties_last
-                                                    child: Container(
-                                                      margin: EdgeInsets.only(
-                                                          left: 90),
-                                                      child: Align(
-                                                        alignment: Alignment
-                                                            .centerLeft,
-                                                        child: Text(
-                                                          dataList[index]
-                                                              .Devices[j]
-                                                              .Name,
-                                                          style:
-                                                              const TextStyle(
-                                                            color: Colors.white,
-                                                            fontSize: 15,
-                                                          ),
+                                    door.isSiteActive == 1
+                                        ? SlideAction(
+                                            // ignore: sort_child_properties_last
+                                            child: Container(
+                                              margin: EdgeInsets.only(left: 90),
+                                              child: Align(
+                                                alignment: Alignment.centerLeft,
+                                                child: Text(
+                                                  door.Name,
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 15,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            onSubmit: () {
+                                              _playSound();
+                                              _timer?.cancel();
+                                              _deviceId = door.DeviceId;
+                                              setState(() {
+                                                isSendRequest = false;
+                                                isSendRequestToDevice = true;
+                                                isLocationFailed = false;
+                                              });
+                                              sendRequestToDevice(door);
+                                            },
+                                            elevation: 2,
+                                            borderRadius: 12,
+                                            innerColor: Colors.white,
+                                            outerColor: kPrimaryColor,
+                                            sliderButtonIcon:
+                                                const Icon(Icons.arrow_forward),
+                                            submittedIcon: const Icon(
+                                              Icons.check,
+                                              color: Color.fromARGB(
+                                                  255, 207, 204, 204),
+                                            ),
+                                            sliderRotate: false,
+                                            alignment: Alignment.centerLeft,
+                                          )
+                                        : Container(
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              color: Color.fromARGB(
+                                                  255, 73, 3, 15),
+                                            ),
+                                            height: 70,
+                                            width: MediaQuery.of(context)
+                                                .size
+                                                .width,
+                                            child: Row(
+                                              children: [
+                                                Container(
+                                                  margin: const EdgeInsets.only(
+                                                      left: 8),
+                                                  decoration: BoxDecoration(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
+                                                    color: Colors.white,
+                                                  ),
+                                                  padding:
+                                                      const EdgeInsets.all(15),
+                                                  child: Icon(
+                                                    Icons.power_off,
+                                                    color: Colors.black,
+                                                  ),
+                                                ),
+                                                Container(
+                                                  margin:
+                                                      EdgeInsets.only(left: 25),
+                                                  child: Column(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .center,
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                        door.Name,
+                                                        style: const TextStyle(
+                                                          fontSize: 15,
+                                                          color: Colors.white,
                                                         ),
                                                       ),
-                                                    ),
-                                                    onSubmit: () {
-                                                      _playSound();
-                                                      _timer?.cancel();
-                                                      _data = dataList[index];
-                                                      setState(() {
-                                                        isSendRequest = false;
-                                                        isSendRequestToDevice =
-                                                            true;
-                                                        isLocationFailed =
-                                                            false;
-                                                      });
-                                                      sendRequestToDevice(
-                                                          _data.Devices[0]);
-                                                    },
-                                                    elevation: 2,
-                                                    borderRadius: 12,
-                                                    innerColor: Colors.white,
-                                                    outerColor: dataList[index]
-                                                                .Devices[j]
-                                                                .isSiteActive ==
-                                                            1
-                                                        ? kPrimaryColor
-                                                        : Color.fromARGB(
-                                                            255, 73, 3, 15),
-                                                    sliderButtonIcon: dataList[
-                                                                    index]
-                                                                .Devices[j]
-                                                                .isSiteActive ==
-                                                            1
-                                                        ? const Icon(
-                                                            Icons.arrow_forward)
-                                                        : const Icon(
-                                                            Icons.power_off),
-                                                    submittedIcon: const Icon(
-                                                      Icons.check,
-                                                      color: Color.fromARGB(
-                                                          255, 207, 204, 204),
-                                                    ),
-                                                    sliderRotate: false,
-                                                    alignment:
-                                                        Alignment.centerLeft,
-                                                  )
-                                                : Container(
-                                                    decoration: BoxDecoration(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              12),
-                                                      color: Color.fromARGB(
-                                                          255, 73, 3, 15),
-                                                    ),
-                                                    height: 70,
-                                                    width:
-                                                        MediaQuery.of(context)
-                                                            .size
-                                                            .width,
-                                                    child: Column(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .center,
-                                                      children: [
-                                                        Row(
-                                                          children: [
-                                                            Container(
-                                                              margin:
-                                                                  const EdgeInsets
-                                                                      .only(
-                                                                      left: 8),
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            12),
-                                                                color: Colors
-                                                                    .white,
-                                                              ),
-                                                              padding:
-                                                                  const EdgeInsets
-                                                                      .all(15),
-                                                              child: Icon(
-                                                                Icons.power_off,
-                                                                color: Colors
-                                                                    .black,
-                                                              ),
-                                                            ),
-                                                            Container(
-                                                              margin: EdgeInsets
-                                                                  .only(
-                                                                      left: 25),
-                                                              child: Column(
-                                                                crossAxisAlignment:
-                                                                    CrossAxisAlignment
-                                                                        .start,
-                                                                children: [
-                                                                  Text(
-                                                                    dataList[
-                                                                            index]
-                                                                        .Devices[
-                                                                            j]
-                                                                        .Name,
-                                                                    style:
-                                                                        const TextStyle(
-                                                                      fontSize:
-                                                                          15,
-                                                                      color: Colors
-                                                                          .white,
-                                                                    ),
-                                                                  ),
-                                                                  Text(
-                                                                    "Cihazda enerji yok.",
-                                                                    style:
-                                                                        const TextStyle(
-                                                                      fontSize:
-                                                                          12,
-                                                                      color: Colors
-                                                                          .white,
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            )
-                                                          ],
-                                                        )
-                                                      ],
-                                                    ),
+                                                      Text(
+                                                        "Cihazda enerji yok.",
+                                                        style: const TextStyle(
+                                                          fontSize: 12,
+                                                          color: Colors.white,
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
-                                            const SizedBox(
-                                              height: 4,
+                                                )
+                                              ],
                                             ),
-                                          ],
-                                        );
-                                      },
+                                          ),
+                                    const SizedBox(
+                                      height: 4,
                                     ),
                                   ],
                                 );
